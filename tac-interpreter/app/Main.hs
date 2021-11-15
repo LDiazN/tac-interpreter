@@ -1,6 +1,8 @@
 module Main where
 
-import Lib
+import Lib(taci)
+
+import System.Environment
 
 main :: IO ()
-main = someFunc
+main = getArgs >>= taci
