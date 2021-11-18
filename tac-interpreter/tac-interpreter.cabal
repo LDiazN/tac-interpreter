@@ -28,6 +28,9 @@ source-repository head
 library
   exposed-modules:
       Lib
+      Taci.TacRunner
+      TACTypes.TAC
+      Utils
   other-modules:
       Paths_tac_interpreter
   hs-source-dirs:

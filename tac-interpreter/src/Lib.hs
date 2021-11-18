@@ -1,23 +1,50 @@
+{-
+    This file implements the cli tool and the main function for this app
+-}
 {-# OPTIONS_GHC -Wall #-}
 module Lib
     ( taci
     ) where
 
+-- Haskell imports
+import System.IO(readFile)
 import System.Directory ( doesFileExist )
-import System.Console.ANSI as C
 import Data.List(isSuffixOf)
 import Control.Monad(unless)
+
+-- Local imports 
+import qualified Utils as U
+import qualified Taci.TacRunner as TR
+
+-- External imports
+import qualified TACTypes.TAC as T
+
 
 -- Main function. Execute app with a given set of command line arguments, including the command name
 taci :: [String] -> IO()
 taci args 
     | "-h" `elem` args || "--help" `elem` args = printHelpMsg
     | otherwise = do 
+
+    -- Try to parse config from arguments
     config <- parseConfig args
 
     case config of 
-        Left err -> logErr . show $ err
-        Right _ -> return ()
+        Left err -> U.logErr . show $ err
+        Right Config {file=_file, interactive=_interactive} -> do 
+            -- Read file to string
+            programStr <- readFile _file
+
+            -- Try to parse it 
+            let program = T.parse programStr
+            
+            -- Run tac program 
+            resultState <- TR.runTac program
+
+            -- Print result state
+            print resultState
+            return ()
+
 
 -- | Config object from command line arguments
 data Config = Config {
@@ -47,7 +74,7 @@ parseConfig args
         let inter = "-i" `elem` args || "--interactive" `elem` args
 
         unless (null rest) $ do
-            logWarn "Too many arguments, ignoring the rest"
+            U.logWarn "Too many arguments, ignoring the rest"
 
         -- set up result
         let res 
@@ -57,46 +84,13 @@ parseConfig args
 
         return res
 
+-- | Help message to print when the user requests the flag --help
 printHelpMsg :: IO ()
 printHelpMsg = do
     putStrLn "\tTAC Code Interpreter (taci). Provide a file with extension '.tac' to run it"
     putStrLn "\tAvailable commnads: "
     putStrLn "Still wip 🤪"
 
--- < Utility functions > -----------------------------------
-logErr :: String -> IO ()
-logErr msg      = _setErrColor      >> putStrLn ("[ERROR] " ++ msg)     >> _resetColor
-
-logWarn :: String -> IO ()
-logWarn msg     = _setWarnColor     >> putStrLn ("[WARNING] " ++ msg)   >> _resetColor
-
-logSuccess :: String -> IO ()
-logSuccess msg  = _setSuccessColor  >> putStrLn ("[SUCCESS] " ++ msg)   >> _resetColor
-
-logInfo :: String -> IO ()
-logInfo msg     = _setInfoColor     >> putStrLn ("[INFO] " ++ msg)      >> _resetColor
-
-logTrace :: String -> IO ()
-logTrace msg    = _setTraceColor    >> putStrLn ("[TRACE] " ++ msg)     >> _resetColor
-
--- | Set terminal colors
-_setErrColor :: IO()
-_setErrColor = C.setSGR [C.SetColor C.Foreground C.Vivid C.Red ]
-
-_setWarnColor :: IO()
-_setWarnColor = C.setSGR [C.SetColor C.Foreground C.Vivid C.Yellow ]
-
-_setSuccessColor :: IO()
-_setSuccessColor = C.setSGR [C.SetColor C.Foreground C.Vivid C.Green ]
-
-_setInfoColor :: IO()
-_setInfoColor = C.setSGR [C.SetColor C.Foreground C.Vivid C.Blue ]
-
-_setTraceColor :: IO()
-_setTraceColor = C.setSGR [C.SetColor C.Foreground C.Vivid C.White ]
-
-_resetColor :: IO()
-_resetColor = C.setSGR [C.Reset]
 
 instance Show CLIError where
     show NotEnoughArgs         = "Not enough arguments, you should provide at the least the file to run"
