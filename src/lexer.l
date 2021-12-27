@@ -183,7 +183,6 @@ string          ((\"{ascii_char}*\"))
             }
 
 {string}    {
-                cout << "Scanner: string [" << yytext << "]" << endl;
                 return TacRunner::Parser::make_STRING(yytext); 
             }
 
@@ -208,17 +207,14 @@ string          ((\"{ascii_char}*\"))
 \'{ascii_char}\' { return TacRunner::Parser::make_CHAR(yytext[1]); }
 
 \(          {
-                cout << "Scanner: '('" << endl;
                 return TacRunner::Parser::make_LEFTPAR();
             }
             
 \)          { 
-                cout << "Scanner: ')'" << endl;
                 return TacRunner::Parser::make_RIGHTPAR();
             }
             
 ,           {
-                cout << "Scanner: ','" << endl;
                 return TacRunner::Parser::make_COMMA();
             }
             
@@ -231,7 +227,6 @@ string          ((\"{ascii_char}*\"))
             }
 
 {id}        {
-                cout << "Scanner: identifier [" << yytext << "]" << endl;
                 return TacRunner::Parser::make_ID(yytext); 
             }
 

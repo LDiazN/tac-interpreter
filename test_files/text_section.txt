@@ -1,4 +1,3 @@
-@staticv x 1
 @label my_label
 add x y z
 sub x y z

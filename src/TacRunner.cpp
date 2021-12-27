@@ -7,18 +7,27 @@
 
 // C++ includes
 #include <iostream>
+#include <vector>
 
 // Local includes
-#include "Lexer.hpp" // note that this include should be before Parser.hpp
-#include "_Parser.hpp"
-#include "TacReader.hpp"
-
-using namespace TacRunner;
+#include "Application.hpp"
 
 int main(int argc, char *argv[])
 {
-    TacReader interpreter;
-    interpreter.parse("test_files/text_section.txt");
-    std::cout << interpreter.str() << std::endl;
+    std::vector<std::string> args;
+    
+    // create arg vector
+    for(int i=0; i < argc; i++)
+        args.push_back(argv[i]);
+
+    try
+    {
+        TacRunner::App app = TacRunner::App::from_arg_list(args);
+    }
+    catch (char const * msg)
+    {
+        std::cerr << msg << std::endl;
+    }
+
     return 0;
 }

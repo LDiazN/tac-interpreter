@@ -133,9 +133,6 @@ Program : Data Text
                         driver.add_tac_instruction(d);
                     }
 
-                    cout << "collected so far" << endl;
-                    cout << driver.str() << endl;
-
                     auto &ts = $2;
                     for (int i = ts.size() - 1; i >= 0; i--)
                     {
@@ -193,7 +190,6 @@ Text    : %empty
 T       : METALABEL ID
                 {
                     $$ = TacRunner::Tac($1, TacRunner::Value($2));
-                    cout << $$.str() << endl;
                 }
 
         | ASSIGNW LValue RValue

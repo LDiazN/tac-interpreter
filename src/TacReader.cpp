@@ -29,6 +29,18 @@ int TacReader::parse(const std::string& filename)
     return parse();
 }
 
+int TacReader::parse(const std::string& filename, std::vector<Tac> &out_instructions)
+{
+    auto error = parse(filename);
+    if (!error)
+    {
+        out_instructions.swap(m_instructions);
+        clear();
+    }
+    
+    return error;
+}
+
 void TacReader::clear() 
 {
     m_instructions.clear();
@@ -36,7 +48,7 @@ void TacReader::clear()
 
 std::string TacReader::str() const {
     std::stringstream s;
-    s << "TacReader: " << m_instructions.size() << " commands received from command line." << endl;
+    s << "TacReader: " << m_instructions.size() << " Instruction list:" << endl;
     for(uint i = 0; i < m_instructions.size(); i++) {
         s << " * " << m_instructions[i].str() << endl;
     }
