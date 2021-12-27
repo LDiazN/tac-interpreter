@@ -18,7 +18,7 @@ using namespace TacRunner;
 int main(int argc, char *argv[])
 {
     TacReader interpreter;
-    interpreter.parse("test_files/data_section.txt");
+    interpreter.parse("test_files/text_section.txt");
     std::cout << interpreter.str() << std::endl;
     return 0;
 }

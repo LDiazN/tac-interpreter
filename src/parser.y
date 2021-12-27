@@ -126,17 +126,20 @@
 
 Program : Data Text 
                 { 
-                    auto ds = $1;
-                    for (int i = $1.size() - 1; i >= 0; i--)
+                    auto &ds = $1;
+                    for (int i = ds.size() - 1; i >= 0; i--)
                     {
                         auto &d = ds[i];
                         driver.add_tac_instruction(d);
                     }
 
-                    ds = $2;
-                    for (int i = $1.size() - 1; i >= 0; i--)
+                    cout << "collected so far" << endl;
+                    cout << driver.str() << endl;
+
+                    auto &ts = $2;
+                    for (int i = ts.size() - 1; i >= 0; i--)
                     {
-                        auto &d = ds[i];
+                        auto &d = ts[i];
                         driver.add_tac_instruction(d);
                     }
                 }
@@ -180,7 +183,6 @@ Text    : %empty
                     std::vector<Tac> &instrs = $3;      // get instruction vector in Text
                     auto &new_instrs = $1;              // get function instructions
                     instrs.reserve(instrs.size() + new_instrs.size());   // Add instructions to instruction list
-
                     // copy new instructions to vector with instructions
                     for(auto& inst : new_instrs)
                         instrs.push_back(inst);
@@ -191,6 +193,7 @@ Text    : %empty
 T       : METALABEL ID
                 {
                     $$ = TacRunner::Tac($1, TacRunner::Value($2));
+                    cout << $$.str() << endl;
                 }
 
         | ASSIGNW LValue RValue
