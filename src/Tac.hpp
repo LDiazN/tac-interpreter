@@ -56,6 +56,12 @@ namespace TacRunner {
         METAFUNEND
     };
 
+    /**
+     * @brief Convert from instr enum into its string representation
+     * 
+     * @param instr an instruction variant
+     * @return std::string the same representation as the one that was once parsed
+     */
     std::string instr_to_str(Instr instr);
 
     /**
