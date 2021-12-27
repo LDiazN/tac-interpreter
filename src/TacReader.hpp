@@ -75,9 +75,9 @@ private:
     unsigned int location() const;
     
 private:
+    std::vector<Tac> m_instructions; // Tac Program
     Lexer m_scanner;                 // Scanner object
     Parser m_parser;                 // Parser object
-    std::vector<Tac> m_instructions; // Tac Program
 };
 
 }

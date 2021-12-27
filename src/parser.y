@@ -56,86 +56,329 @@
 %token END 0 "end of file"
 %token <std::string> ID  "id";
 %token <std::string> STRING  "string";
-%token <uint64_t> NUMBER "number";
+%token <int> INTEGER "integer";
+%token <float> FLOAT "float";
+%token <bool> BOOL "bool";
+%token <char> CHAR "char";
+
+%token RBRACKET "rbracket";
+%token LBRACKET "lbracket";
 %token LEFTPAR "leftpar";
 %token RIGHTPAR "rightpar";
-%token SEMICOLON "semicolon";
 %token COMMA "comma";
 
-%type< TacRunner::Tac > tac;
-%type< std::vector<uint64_t> > arguments;
+%token <TacRunner::Instr> METASTATICV    "@staticv";
+%token <TacRunner::Instr> METALABEL  "@label";
+%token <TacRunner::Instr> METASTRING     "@string";
+%token <TacRunner::Instr> ASSIGNW    "assignw";
+%token <TacRunner::Instr> ASSIGNB    "assignb";
+%token <TacRunner::Instr> ADD    "add";
+%token <TacRunner::Instr> SUB    "sub";
+%token <TacRunner::Instr> MULT   "mult";
+%token <TacRunner::Instr> DIV    "div";
+%token <TacRunner::Instr> MOD    "mod";
+%token <TacRunner::Instr> MINUS  "minus";
+%token <TacRunner::Instr> EQ     "eq";
+%token <TacRunner::Instr> NEQ    "neq";
+%token <TacRunner::Instr> LT     "lt";
+%token <TacRunner::Instr> LEQ    "leq";
+%token <TacRunner::Instr> GT     "gt";
+%token <TacRunner::Instr> GEQ    "geq";
+%token <TacRunner::Instr> GOTO   "goto";
+%token <TacRunner::Instr> GOIF   "goif";
+%token <TacRunner::Instr> GOIFNOT    "goifnot";
+%token <TacRunner::Instr> MALLOC     "malloc";
+%token <TacRunner::Instr> MEMCPY     "memcpy";
+%token <TacRunner::Instr> FREE   "free";
+%token <TacRunner::Instr> EXIT   "exit";
+%token <TacRunner::Instr> RETURN     "return";
+%token <TacRunner::Instr> PARAM  "param";
+%token <TacRunner::Instr> CALL   "call";
+%token <TacRunner::Instr> PRINTI     "printi";
+%token <TacRunner::Instr> PRINTF     "printf";
+%token <TacRunner::Instr> PRINT  "print";
+%token <TacRunner::Instr> PRINTC     "printc";
+%token <TacRunner::Instr> READI  "readi";
+%token <TacRunner::Instr> READF  "readf";
+%token <TacRunner::Instr> READ   "read";
+%token <TacRunner::Instr> READC  "readc";
+%token <TacRunner::Instr> METAFUNBEGIN   "@fun_begin";
+%token <TacRunner::Instr> METAFUNEND     "@fun_end";
 
-%start program
+%token NEWLINE "newline";
+
+%type < TacRunner::Value > Constant;
+%type < std::vector<TacRunner::Tac> > Data;
+%type < TacRunner::Tac > D;
+%type < std::vector<TacRunner::Tac> > Text;
+%type < TacRunner::Tac > T;
+%type < std::vector<TacRunner::Tac> > F;
+%type < TacRunner::Value > LValue;
+%type < TacRunner::Value > RValue;
+%type < TacRunner::Value > Value;
+%type < TacRunner::Variable > Access;
+%type < TacRunner::Variable > Variable;
+
+
+%start Program
 
 %%
 
-program :   {
-                cout << "*** RUN ***" << endl;
-                cout << "Type function with list of parmeters. Parameter list can be empty" << endl
-                     << "or contain positive integers only. Examples: " << endl
-                     << " * function()" << endl
-                     << " * function(1,2,3)" << endl
-                     << "Terminate listing with ; to see parsed AST" << endl
-                     << "Terminate parser with Ctrl-D" << endl;
-                
-                cout << endl << "prompt> ";
-                
-                driver.clear();
-            }
-        | program tac
+Program : Data Text 
+                { 
+                    auto ds = $1;
+                    for (int i = $1.size() - 1; i >= 0; i--)
+                    {
+                        auto &d = ds[i];
+                        driver.add_tac_instruction(d);
+                    }
+
+                    ds = $2;
+                    for (int i = $1.size() - 1; i >= 0; i--)
+                    {
+                        auto &d = ds[i];
+                        driver.add_tac_instruction(d);
+                    }
+                }
+
+Data    : %empty {  
+                    std::vector<Tac> tac_instrs;
+                    $$ = tac_instrs;
+                 }
+
+        | D Data {
+                    std::vector<Tac> &instrs = $2; // get instruction vector in Data
+                    instrs.push_back($1);          // Add instructions to instruction list
+                    $$ = instrs;
+                 }
+
+D       : METASTATICV ID Constant NEWLINE   
             {
-                const Tac &cmd = $2;
-                cout << "tac parsed, updating AST" << endl;
-                driver.add_tac_instruction(cmd);
-                cout << endl << "prompt> ";
+                TacRunner::Tac t($1, TacRunner::Value($2), $3);
+                $$ = t;
             }
-        | program SEMICOLON
+        | METASTRING ID STRING NEWLINE
             {
-                cout << "*** STOP RUN ***" << endl;
-                cout << driver.str() << endl;
+                TacRunner::Tac t($1, TacRunner::Value($2), TacRunner::Value($3));
+                $$ = t;
             }
-        ;
 
+Text    : %empty 
+                {  
+                    std::vector<Tac> tac_instrs;
+                    $$ = tac_instrs;
+                }
+        | T NEWLINE Text 
+                {
+                    std::vector<Tac> &instrs = $3; // get instruction vector in Text
+                    instrs.push_back($1);          // Add instructions to instruction list
+                    $$ = instrs;
+                }
 
-tac : ID LEFTPAR RIGHTPAR
-        {
-            string &id = $1;
-            cout << "ID: " << id << endl;
-            $$ = Tac(id);
-        }
-    | ID LEFTPAR arguments RIGHTPAR
-        {
-            string &id = $1;
-            const std::vector<uint64_t> &args = $3;
-            cout << "function: " << id << ", " << args.size() << endl;
-            $$ = Tac(id, args);
-        }
-    ;
+        | F NEWLINE Text 
+                {
+                    std::vector<Tac> &instrs = $3;      // get instruction vector in Text
+                    auto &new_instrs = $1;              // get function instructions
+                    instrs.reserve(instrs.size() + new_instrs.size());   // Add instructions to instruction list
 
-arguments : NUMBER
-        {
-            uint64_t number = $1;
-            $$ = std::vector<uint64_t>();
-            $$.push_back(number);
-            cout << "first argument: " << number << endl;
-        }
-    | STRING
-        {
-            std::string string = $1;
-            $$ = std::vector<std::string>();
-            $$.push_back(string);
-            cout << "first argument: " << string << endl;
-        }
-    | arguments COMMA NUMBER
-        {
-            uint64_t number = $3;
-            std::vector<uint64_t> &args = $1;
-            args.push_back(number);
-            $$ = args;
-            cout << "next argument: " << number << ", arg list size = " << args.size() << endl;
-        }
-    ;
-    
+                    // copy new instructions to vector with instructions
+                    for(auto& inst : new_instrs)
+                        instrs.push_back(inst);
+
+                    $$ = instrs;
+                }
+
+T       : METALABEL ID
+                {
+                    $$ = TacRunner::Tac($1, TacRunner::Value($2));
+                }
+
+        | ASSIGNW LValue RValue
+                {
+                    $$ = TacRunner::Tac($1, TacRunner::Value($2), $3);
+                }
+        | ASSIGNB LValue RValue
+                {
+                    $$ = TacRunner::Tac($1, TacRunner::Value($2), $3);
+                }
+        | ADD     Variable Value Value 
+                {
+                    $$ = TacRunner::Tac($1, TacRunner::Value($2), $3, $4);
+                }
+        | SUB     Variable Value Value 
+                {
+                    $$ = TacRunner::Tac($1, TacRunner::Value($2), $3, $4);
+                }
+        | MULT    Variable Value Value 
+                {
+                    $$ = TacRunner::Tac($1, TacRunner::Value($2), $3, $4);
+                }
+        | DIV     Variable Value Value 
+                {
+                    $$ = TacRunner::Tac($1, TacRunner::Value($2), $3, $4);
+                }
+        | MOD     Variable Value Value 
+                {
+                    $$ = TacRunner::Tac($1, TacRunner::Value($2), $3, $4);
+                }
+        | MINUS   Variable Value 
+                {
+                    $$ = TacRunner::Tac($1, TacRunner::Value($2), $3);
+                }
+        | EQ      Variable Value Value 
+                {
+                    $$ = TacRunner::Tac($1, TacRunner::Value($2), $3, $4);
+                }
+        | NEQ     Variable Value Value 
+                {
+                    $$ = TacRunner::Tac($1, TacRunner::Value($2), $3, $4);
+                }
+        | LT      Variable Value Value 
+                {
+                    $$ = TacRunner::Tac($1, TacRunner::Value($2), $3, $4);
+                }
+        | LEQ     Variable Value Value 
+                {
+                    $$ = TacRunner::Tac($1, TacRunner::Value($2), $3, $4);
+                }
+        | GT      Variable Value Value 
+                {
+                    $$ = TacRunner::Tac($1, TacRunner::Value($2), $3, $4);
+                }
+        | GEQ     Variable Value Value 
+                {
+                    $$ = TacRunner::Tac($1, TacRunner::Value($2), $3, $4);
+                }
+        | GOTO  ID
+                {
+                    $$ = TacRunner::Tac($1, TacRunner::Value($2));
+                }
+        | GOIF  ID Value
+                {
+                    $$ = TacRunner::Tac($1, TacRunner::Value($2), $3);
+                }
+        | GOIFNOT ID Value
+                {
+                    $$ = TacRunner::Tac($1, TacRunner::Value($2), $3);
+                }
+        | MALLOC  Variable Value
+                {
+                    $$ = TacRunner::Tac($1, TacRunner::Value($2), $3);
+                }
+        | MEMCPY Variable Variable INTEGER
+                {
+                    $$ = TacRunner::Tac($1, TacRunner::Value($2), TacRunner::Value($3), TacRunner::Value($4));
+                }
+
+        | FREE    LValue
+                {
+                    $$ = TacRunner::Tac($1, $2);
+                }
+        | EXIT    Value
+                {
+                    $$ = TacRunner::Tac($1, $2);
+                }
+        | RETURN  Value
+                {
+                    $$ = TacRunner::Tac($1, $2);
+                }
+        | PARAM LValue RValue 
+                {
+                    $$ = TacRunner::Tac($1, $2, $3);
+                }
+        | CALL Variable ID
+                {
+                    $$ = TacRunner::Tac($1, TacRunner::Value($2), TacRunner::Value($3));
+                }
+        | PRINTI Variable
+                {
+                    $$ = TacRunner::Tac($1, TacRunner::Value($2));
+                }
+        | PRINTF Variable
+                {
+                    $$ = TacRunner::Tac($1, TacRunner::Value($2));
+                }
+        | PRINT   Variable
+                {
+                    $$ = TacRunner::Tac($1, TacRunner::Value($2));
+                }
+        | PRINTC  Variable
+                {
+                    $$ = TacRunner::Tac($1, TacRunner::Value($2));
+                }
+        | READI Variable
+                {
+                    $$ = TacRunner::Tac($1, TacRunner::Value($2));
+                }
+        | READF Variable
+                {
+                    $$ = TacRunner::Tac($1, TacRunner::Value($2));
+                }
+        | READ  Variable
+                {
+                    $$ = TacRunner::Tac($1, TacRunner::Value($2));
+                }
+
+        | READC  Variable
+                {
+                    $$ = TacRunner::Tac($1, TacRunner::Value($2));
+                }
+
+F       :   METAFUNBEGIN ID INTEGER NEWLINE 
+            Text NEWLINE 
+            METAFUNEND INTEGER NEWLINE 
+                {
+                    TacRunner::Tac t1($1, TacRunner::Value($2), TacRunner::Value($3));
+                    TacRunner::Tac t2($7, TacRunner::Value($8));
+                    auto instrs = $5;
+                    std::vector<TacRunner::Tac> new_instrs;
+                    // Create a new vector and reserve enough space 
+                    // as pushing from the start has to reallocate the
+                    // entire vector anyways
+                    new_instrs.reserve(instrs.size() + 2);
+
+                    // Copy footer (this will be reversed in another rule)
+                    new_instrs.push_back(t2);
+
+                    // Copy intermediate instructions
+                    for(auto &i : instrs)
+                        new_instrs.push_back(i);
+                    
+                    $$ = new_instrs;
+                }
+
+Constant : BOOL    {
+                       TacRunner::Value b($1);
+                       $$ = b;
+                    }
+         | INTEGER  {
+                        TacRunner::Value b($1);
+                        $$ = b;
+                    }
+         | FLOAT    {
+                        TacRunner::Value b($1);
+                        $$ = b;
+                    }
+         | CHAR     {
+                        TacRunner::Value b($1);
+                        $$ = b;
+                    }
+
+Access : ID LBRACKET INTEGER RBRACKET 
+            {
+                $$ = TacRunner::Variable{$1, $3, true};
+            }
+Variable : ID { $$ = TacRunner::Variable{$1, 0, false}; } 
+
+LValue  : Variable { $$ = TacRunner::Value($1); }
+        | Access   { $$ = TacRunner::Value($1); }
+
+Value   : Constant { $$ = $1; }
+        | Variable { $$ = TacRunner::Value($1); }
+
+RValue  : Value     { $$ = $1; }
+        | Access    { $$ = TacRunner::Value($1); }
+
 %%
 
 // Bison expects us to provide implementation - otherwise linker complains

@@ -37,7 +37,7 @@ void TacReader::clear()
 std::string TacReader::str() const {
     std::stringstream s;
     s << "TacReader: " << m_instructions.size() << " commands received from command line." << endl;
-    for(int i = 0; i < m_instructions.size(); i++) {
+    for(uint i = 0; i < m_instructions.size(); i++) {
         s << " * " << m_instructions[i].str() << endl;
     }
     return s.str();

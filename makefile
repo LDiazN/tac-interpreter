@@ -8,8 +8,14 @@ OUT_NAME := tac-runner
 # Compiled files
 FILES := src/*.cpp
 
+# C++ Version
+CPP_VERSION := c++17
+
+# Compilation flags
+CFLAGS := -pedantic -Wall
+
 all: parsing	
-	$(COMPILER) -o $(OUT_NAME) $(FILES)
+	$(COMPILER) -o $(OUT_NAME) $(FILES) -std=$(CPP_VERSION) $(CFLAGS)
 
 parsing:
 	flex src/lexer.l

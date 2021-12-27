@@ -26,7 +26,7 @@ frac            (({dseq_opt}"."{dseq})|{dseq}".")
 exp             ([eE][+-]?{dseq})
 exp_opt         ({exp}?)
 
-integer         ({dseq})
+integer         ([1-9][0-9]*)
 float           (({frac}{exp_opt})|({dseq}{exp}))
 
 id              ([a-zA-Z_@]+[a-zA-Z_@0-9]*) 
@@ -35,16 +35,178 @@ string          ((\"{ascii_char}*\"))
 
 %%
 
-{id}        {
-                cout << "Scanner: identifier [" << yytext << "]" << endl;
-                return TacRunner::Parser::make_ID(yytext); 
+"@staticv"  {
+                return TacRunner::Parser::make_METASTATICV(TacRunner::Instr::METASTATICV);
+            }
+
+"@string"   {
+                return TacRunner::Parser::make_METASTRING(TacRunner::Instr::METASTRING);
+            }
+
+"@label"    {
+                return TacRunner::Parser::make_METALABEL(TacRunner::Instr::METALABEL);
+            }
+
+"assignw"   {
+                return TacRunner::Parser::make_ASSIGNW(TacRunner::Instr::ASSIGNW);
+            }
+
+"assignb"   {
+                return TacRunner::Parser::make_ASSIGNB(TacRunner::Instr::ASSIGNB);
+            }
+
+"add"       {
+                return TacRunner::Parser::make_ADD(TacRunner::Instr::ADD);
+            }
+"sub"       {
+                return TacRunner::Parser::make_SUB(TacRunner::Instr::SUB);
+            }
+"mult"      {
+                return TacRunner::Parser::make_MULT(TacRunner::Instr::MULT);
+            }
+"div"       {
+                return TacRunner::Parser::make_DIV(TacRunner::Instr::DIV);
+            }
+"mod"       {
+                return TacRunner::Parser::make_MOD(TacRunner::Instr::MOD);
+            }
+"minus"     {
+                return TacRunner::Parser::make_MINUS(TacRunner::Instr::MINUS);
+            }
+"eq"        {
+                return TacRunner::Parser::make_EQ(TacRunner::Instr::EQ);
+            }
+"neq"       {
+                return TacRunner::Parser::make_NEQ(TacRunner::Instr::NEQ);
+            }
+"lt"        {
+                return TacRunner::Parser::make_LT(TacRunner::Instr::LT);
+            }
+"leq"       {
+                return TacRunner::Parser::make_LEQ(TacRunner::Instr::LEQ);
+            }
+"gt"        {
+                return TacRunner::Parser::make_GT(TacRunner::Instr::GT);
+            }
+
+"geq"       {
+                return TacRunner::Parser::make_GEQ(TacRunner::Instr::GEQ);
+            }
+
+"goto"      {
+                return TacRunner::Parser::make_GOTO(TacRunner::Instr::GOTO);
+            }
+            
+"goif"      {
+                return TacRunner::Parser::make_GOIF(TacRunner::Instr::GOIF);
+            }
+            
+"goifnot"   {
+                return TacRunner::Parser::make_GOIFNOT(TacRunner::Instr::GOIFNOT);
+            }    
+            
+"malloc"    {
+                return TacRunner::Parser::make_MALLOC(TacRunner::Instr::MALLOC);
+            }    
+            
+"memcpy"    {
+                return TacRunner::Parser::make_MEMCPY(TacRunner::Instr::MEMCPY);
+            }    
+            
+"free"      {
+                return TacRunner::Parser::make_FREE(TacRunner::Instr::FREE);
+            }
+            
+"exit"      {
+                return TacRunner::Parser::make_EXIT(TacRunner::Instr::EXIT);
+            }
+            
+"return"    {
+                return TacRunner::Parser::make_RETURN(TacRunner::Instr::RETURN);
+            }    
+            
+"param"     {
+                return TacRunner::Parser::make_PARAM(TacRunner::Instr::PARAM);
+            }
+            
+"call"      {
+                return TacRunner::Parser::make_CALL(TacRunner::Instr::CALL);
+            }
+            
+"printi"    {
+                return TacRunner::Parser::make_PRINTI(TacRunner::Instr::PRINTI);
+            }    
+            
+"printf"    {
+                return TacRunner::Parser::make_PRINTF(TacRunner::Instr::PRINTF);
+            }    
+            
+"print"     {
+                return TacRunner::Parser::make_PRINT(TacRunner::Instr::PRINT);
+            }
+            
+"printc"    {
+                return TacRunner::Parser::make_PRINTC(TacRunner::Instr::PRINTC);
+            }    
+            
+"readi"     {
+                return TacRunner::Parser::make_READI(TacRunner::Instr::READI);
+            }
+            
+"readf"     {
+                return TacRunner::Parser::make_READF(TacRunner::Instr::READF);
+            }
+            
+"read"      {
+                return TacRunner::Parser::make_READ(TacRunner::Instr::READ);
+            }
+            
+"readc"     {
+                return TacRunner::Parser::make_READC(TacRunner::Instr::READC);
+            }
+            
+
+"@fun_begin" {
+                return TacRunner::Parser::make_METAFUNBEGIN(TacRunner::Instr::METAFUNBEGIN);
+             }
+
+"@fun_end"   {
+                return TacRunner::Parser::make_METAFUNEND(TacRunner::Instr::METAFUNEND);
+             }
+
+"["         {
+                return TacRunner::Parser::make_LBRACKET();
+            }
+
+"]"         {
+                return TacRunner::Parser::make_RBRACKET();
             }
 
 {string}    {
                 cout << "Scanner: string [" << yytext << "]" << endl;
                 return TacRunner::Parser::make_STRING(yytext); 
             }
-            
+
+"False"     {
+                return TacRunner::Parser::make_BOOL(false);
+            }
+
+"True"      {
+                return TacRunner::Parser::make_BOOL(true);
+            }
+
+{integer}   {
+                int number = stoi(yytext);
+                return TacRunner::Parser::make_INTEGER(number);
+            }
+
+{float}     {
+                float number = stof(yytext);
+                return TacRunner::Parser::make_FLOAT(number);
+            }
+
+\'{ascii_char}\' { return TacRunner::Parser::make_CHAR(yytext[1]); }
+
 \(          {
                 cout << "Scanner: '('" << endl;
                 return TacRunner::Parser::make_LEFTPAR();
@@ -55,24 +217,22 @@ string          ((\"{ascii_char}*\"))
                 return TacRunner::Parser::make_RIGHTPAR();
             }
             
-;           {
-                cout << "Scanner: ';'" << endl;
-                return TacRunner::Parser::make_SEMICOLON();
-            }
-            
 ,           {
                 cout << "Scanner: ','" << endl;
                 return TacRunner::Parser::make_COMMA();
             }
             
-[\n\t ]     {
+[\r\t ]     {
                 //cout << "Scanner: whitechar (ignored)" << endl;
             }
 
-[1-9][0-9]* {
-                cout << "Scanner: decimal number: " << yytext << endl;
-                uint64_t number = strtoull(yytext, 0, 10);
-                return TacRunner::Parser::make_NUMBER(number);
+[\n]        {
+                return TacRunner::Parser::make_NEWLINE();
+            }
+
+{id}        {
+                cout << "Scanner: identifier [" << yytext << "]" << endl;
+                return TacRunner::Parser::make_ID(yytext); 
             }
 
 .           { 
