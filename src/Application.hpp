@@ -13,6 +13,7 @@
 
 // Local includes
 #include "TacReader.hpp"
+#include "TacMachine.hpp"
 
 // Defines & constants
 #define APP_NAME "tac-runner"
@@ -103,24 +104,6 @@ namespace TacRunner
              */
             static inline std::string help_flag() { return "--help"; }
 
-            // Allow config to use logging functions
-            friend class Config;
-            
-        private:
-            /**
-             * @brief Los a message to stdout
-             * 
-             * @param msg message to log
-             */
-            static void log_msg(std::string msg);
-
-            /**
-             * @brief Los a message to stderr
-             * 
-             * @param msg message to log
-             */
-            static void log_err(std::string msg);
-
             /**
              * @brief Los a message to stderr formated as error
              * 
@@ -147,7 +130,22 @@ namespace TacRunner
              * 
              * @param msg message to log
              */
-            void trace(std::string msg);
+            static void trace(std::string msg);
+
+        private:
+            /**
+             * @brief Los a message to stdout
+             * 
+             * @param msg message to log
+             */
+            static void log_msg(std::string msg);
+
+            /**
+             * @brief Los a message to stderr
+             * 
+             * @param msg message to log
+             */
+            static void log_err(std::string msg);
 
             /**
              * @brief Run a tac code

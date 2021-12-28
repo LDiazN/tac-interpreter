@@ -15,7 +15,6 @@
 int main(int argc, char *argv[])
 {
     std::vector<std::string> args;
-    
     // create arg vector
     for(int i=0; i < argc; i++)
         args.push_back(argv[i]);

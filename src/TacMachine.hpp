@@ -14,12 +14,16 @@
 #include <array>
 #include <map>
 #include <cstddef> // byte type
+#include <memory>
 
 // Size of the stack memory
 #define STACK_MEMORY_SIZE 314572800
 
 namespace TacRunner 
 {
+    // Forward declarations:
+    class MemoryChunk;
+
     // Map from names to line number
     using LabelMap = std::map<std::string, uint>;
 
@@ -36,12 +40,6 @@ namespace TacRunner
              * @param start_pos Where this memory chunk starts
              */
             MemoryChunk(uint size, uint start_pos);
-
-            /**
-             * @brief Destroy the Memory Chunk object, freeing its stored memory
-             * 
-             */
-            ~MemoryChunk();
 
             /**
              * @brief Start position 
@@ -73,7 +71,7 @@ namespace TacRunner
              * 
              * @return std::byte* an actual memory position where this object's memory is stored
              */
-            std::byte *memory() const { return m_memory; }
+            std::shared_ptr<std::byte []> memory() const { return m_memory; }
 
         private:
             /**
@@ -92,7 +90,7 @@ namespace TacRunner
              * @brief Actual memory 
              * 
              */
-            std::byte *m_memory;
+            std::shared_ptr<std::byte []> m_memory;
     };
 
     /**
@@ -134,7 +132,7 @@ namespace TacRunner
              * @param virtual_position a virtual memory address that should be a valid address inside the virtual heap
              * @return uint success status, 0 un success, 1 on failure
              */
-            uint memset(std::byte * bytes, size_t count, uint virtual_position);
+            uint memcopy(uint virtual_position, const std::byte * bytes, size_t count);
 
             /**
              * @brief Tells if a given position is a valid memory position
@@ -143,7 +141,18 @@ namespace TacRunner
              * @return true If this is a valid allocated position
              * @return false otherwise
              */
-            bool is_valid(uint virtual_position) const;
+            inline bool is_valid(uint virtual_position) const { return is_valid(virtual_position, 1); };
+
+            /**
+             * @brief Tells if a given memory segment specified by its start position
+             *        and size in bytes is a valid one
+             * 
+             * @param virtual_position Position in the heap
+             * @param n_bytes How many bytes to check starting from 'virtual_position'
+             * @return true If this is a valid allocated position
+             * @return false otherwise
+             */
+            bool is_valid(uint virtual_position, size_t n_bytes) const;
 
         private:
             /**
