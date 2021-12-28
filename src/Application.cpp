@@ -172,7 +172,7 @@ namespace TacRunner
     void App::success(std::string msg)
     {
         stringstream ss;
-        ss << GREEN << "[WARNING] " << msg << RESET;
+        ss << GREEN << "[SUCCESS] " << msg << RESET;
         App::log_msg(ss.str());
     }
     
