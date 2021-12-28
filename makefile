@@ -17,6 +17,8 @@ CFLAGS := -pedantic -Wall
 all: parsing	
 	$(COMPILER) -o $(OUT_NAME) $(FILES) -std=$(CPP_VERSION) $(CFLAGS)
 
+debug: parsing
+	$(COMPILER) -o $(OUT_NAME) $(FILES) -std=$(CPP_VERSION) $(CFLAGS) -g -fdiagnostics-color=always
 parsing:
 	flex src/lexer.l
 	bison src/parser.y
