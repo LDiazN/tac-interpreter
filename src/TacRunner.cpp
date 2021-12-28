@@ -23,8 +23,11 @@ int main(int argc, char *argv[])
     try
     {
         TacRunner::App app = TacRunner::App::from_arg_list(args);
+        auto result = app.run();
+        if (result == FAIL)
+            std::cerr << "Failed execution" << std::endl;
     }
-    catch (char const * msg)
+    catch (char const * msg) // constant string
     {
         std::cerr << msg << std::endl;
     }

@@ -1,9 +1,12 @@
 // Local includes 
 #include "Application.hpp"
+#include "TacReader.hpp"
+#include "Tac.hpp"
 
 // C++ includes 
 #include <sstream>
 #include <fstream>
+#include <algorithm>
 
 //the following are UBUNTU/LINUX, and MacOS ONLY terminal color codes.
 #define RESET   "\033[0m"
@@ -26,8 +29,64 @@
 
 namespace TacRunner
 {
+
+    int App::run()
+    {
+        // Show help if requested so
+        if (m_config.has_action(Action::SHOW_HELP))
+            std::cout << help_msg() << std::endl;
+        
+        // Run a tac code
+        if (m_config.has_action(Action::RUN_TAC_CODE))
+            run_tac_code();
+
+        return SUCCESS;
+    }
+
+    void App::run_tac_code()
+    {
+        std::stringstream ss;
+        // Read tac code from file
+        Program tac_code;
+
+        ss << "Parsing tac program from '" << m_config.filename << "'...";
+        App::trace(ss.str());
+        ss.clear();
+
+        auto result = m_tac_reader.parse(m_config.filename, tac_code);
+
+        // If couldn't parse, tell the user that this was an invalid tac file
+        if (result == FAIL)
+        {
+            App::error("Invalid TAC code.");
+            return;
+        }
+
+        App::success("TAC code successfully parsed.");
+
+        // WIP
+        
+    }
+
+    std::string App::help_msg() const
+    {
+        std::stringstream ss;
+        ss << "Tac Runner is a simple virtual machine capable of running tac code." << endl;
+        ss << "\tUsage:" << endl;
+        ss << "\t\ttac-runner <name_of_file> [flags]" << endl;
+        ss << "\tWhere:" << endl;
+        ss << "\t\t<name_of_file> : is the name of the file to be run, should be a valid tac code." << endl;
+        ss << "\t\t [flags] : Configuration flags, part of the following: " << endl;
+        ss << "\t\t\t--help : Show this help" << endl;
+
+        return ss.str();
+    }
+
     int Config::from_arg_list(const std::vector<std::string> &args, Config& out_config)
     {
+        // Store actions here
+        std::vector<Action> actions;
+
         // Check number of arguments
         uint min_expected_args = 2; // program name + filename
         if (args.size() < min_expected_args)
@@ -38,6 +97,16 @@ namespace TacRunner
 
         // First argument will be the file to parse 
         auto filename = args[1];
+
+        // check if it's just the help flag
+        if (filename == App::help_flag())
+        {
+            actions.push_back(Action::SHOW_HELP);
+            // This is the only field for now
+            out_config.filename = "";
+            out_config.actions = actions;
+            return SUCCESS;
+        }
 
         // Check if not exists
         std::ifstream my_file(filename.c_str());
@@ -50,8 +119,18 @@ namespace TacRunner
             return FAIL;
         }
 
+        // Check for flags
+        // Check help flag
+        auto help_flag = App::help_flag();
+        if(std::find(args.begin(), args.end(), help_flag) != args.end())
+            actions.push_back(Action::SHOW_HELP);
+
+        // Tell the app to run some code
+        actions.push_back(Action::RUN_TAC_CODE);
+
         // This is the only field for now
         out_config.filename = filename;
+        out_config.actions.swap(actions);
         return SUCCESS;
     }
 

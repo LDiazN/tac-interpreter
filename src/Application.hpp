@@ -9,6 +9,7 @@
 // C++ includes
 #include <string>
 #include <vector>
+#include <algorithm>
 
 // Local includes
 #include "TacReader.hpp"
@@ -20,13 +21,25 @@
 
 namespace TacRunner
 {
+
+    /**
+     * @brief Possible actions for the app
+     * 
+     */
+    enum class Action
+    {
+        SHOW_HELP,
+        RUN_TAC_CODE
+    };
+
     /**
      * @brief Data required for the application to know how to behave
      * 
      */
     struct Config
     {
-        std::string filename;
+        std::string filename; // file where to parse the tac code
+        std::vector<Action> actions; // Which actions should the application perform
 
         /**
          * @brief Create a config from a list of arguments,
@@ -39,6 +52,8 @@ namespace TacRunner
          * @return 0 on sucess, 1 on fail parsing
          */
         static int from_arg_list(const std::vector<std::string> &args, Config& out_config);
+
+        inline bool has_action(Action action) const { return std::find(actions.begin(), actions.end(), action) != actions.end(); }
     };
 
     class App 
@@ -61,11 +76,18 @@ namespace TacRunner
             static App from_arg_list(const std::vector<std::string> &args);
 
             /**
+             * @brief Run an application with the provided configuration, 
+             *        return a status on finish. 0 for success, 1 for failure.
+             * @return int 
+             */
+            int run();
+
+            /**
              * @brief Get the help message for the CLI
              * 
              * @return std::string Help message
              */
-            std::string help_msg();
+            std::string help_msg() const;
 
             /**
              * @brief Application name
@@ -73,6 +95,13 @@ namespace TacRunner
              * @return std::string name of the application
              */
             static inline  std::string name() { return APP_NAME; }
+
+            /**
+             * @brief Property with the help flag 
+             * 
+             * @return std::string 
+             */
+            static inline std::string help_flag() { return "--help"; }
 
             // Allow config to use logging functions
             friend class Config;
@@ -119,6 +148,12 @@ namespace TacRunner
              * @param msg message to log
              */
             void trace(std::string msg);
+
+            /**
+             * @brief Run a tac code
+             * 
+             */
+            void run_tac_code();
 
         private:
             Config m_config;
