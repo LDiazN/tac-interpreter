@@ -175,7 +175,7 @@ namespace TacRunner
              *                    large segments of memory are stored
              * @return std::string string representation
              */
-            std::string str(bool show_memory = false);
+            std::string str(bool show_memory = false) const;
 
             /**
              * @brief How many memory allocations were performed 
@@ -246,7 +246,7 @@ namespace TacRunner
     class VirtualStack
     {
         public:
-
+        VirtualStack();
         /**
          * @brief push 'count' bytes of data into the stack, from 'memory'
          * 
@@ -309,6 +309,15 @@ namespace TacRunner
          */
         inline size_t pop_count() const { return m_pop_count; }
 
+        /**
+         * @brief build a string representation of the stack
+         * 
+         * @param show_memory if should display memory content, might be a problem when there's too much memory
+         *                    allocated
+         * @return std::string human readable representation
+         */
+        std::string str(bool show_memory = false) const;
+
         private:
         /**
          * @brief Current stack pointer, the next available position where to store data
@@ -320,7 +329,7 @@ namespace TacRunner
          * @brief Memory Buffer
          * 
          */
-        std::byte m_memory[STACK_MEMORY_SIZE];
+        static std::byte m_memory[STACK_MEMORY_SIZE];
 
         /**
          * @brief How many stack push operations were performed

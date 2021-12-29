@@ -138,7 +138,7 @@ bool VirtualHeap::is_valid(uint virtual_position, size_t n_bytes) const
     return virtual_position + n_bytes - 1 <= chunk_end;
 }
 
-std::string VirtualHeap::str(bool show_memory)
+std::string VirtualHeap::str(bool show_memory) const
 {
     std::stringstream ss;
     ss << "[ Heap Memory ]" << std::endl;
@@ -155,6 +155,17 @@ std::string VirtualHeap::str(bool show_memory)
 }
 
 // -- < Virtual Stack Implementation > ------------------------------
+
+std::byte VirtualStack::m_memory[STACK_MEMORY_SIZE];
+
+VirtualStack::VirtualStack()
+    : m_stack_pointer(0)
+    , m_push_count(0)
+    , m_pop_count(0)
+{
+    // Set stack memory to 0
+    memset(m_memory, 0, sizeof(m_memory));
+}
 
 uint VirtualStack::push_memory(const std::byte *memory, std::size_t count)
 {
@@ -179,7 +190,7 @@ uint VirtualStack::push_memory(const std::byte *memory, std::size_t count)
     }
 
     // copy memory to stack
-    memcpy(m_memory, memory, count);
+    memcpy(m_memory + m_stack_pointer, memory, count);
 
     // update sp
     m_stack_pointer += count;
@@ -204,4 +215,23 @@ uint VirtualStack::pop_memory(size_t count)
     return SUCCESS;
 }
 
+std::string VirtualStack::str(bool show_memory) const
+{
+    std::stringstream ss;
+    ss << "[ Stack Memory ]"            << std::endl;
+    ss << "\t- Stack Pointer (SP): "    << std::dec << m_stack_pointer  << std::endl;
+    ss << "\t- Stack push count: "      << std::dec << m_push_count     << std::endl;
+    ss << "\t- Stack pop count: "       << std::dec << m_pop_count      << std::endl;
+    
+    if (show_memory)
+    {
+        ss << "\t- Memory: " << std::endl;
+        ss << "[ ";
+        for(size_t i = 0 ;  i < m_stack_pointer; i++)
+            ss << std::hex << (uint) m_memory[i] << ", ";
 
+        ss << " ]" << std::endl;
+    }
+
+    return ss.str();
+}
