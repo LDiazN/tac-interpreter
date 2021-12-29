@@ -154,6 +154,34 @@ namespace TacRunner
              */
             bool is_valid(uint virtual_position, size_t n_bytes) const;
 
+            /**
+             * @brief How many memory allocations were performed 
+             * 
+             * @return size_t allocation count
+             */
+            inline size_t allocations_count() const { return m_allocations_counter; }
+
+            /**
+             * @brief How many memory free were performed 
+             * 
+             * @return size_t allocation count
+             */
+            inline size_t free_count() const { return m_free_counter; }
+
+            /**
+             * @brief How many memory read operations were performed 
+             * 
+             * @return size_t allocation count
+             */
+            inline size_t read_count() const { return m_read_counter; }
+
+            /**
+             * @brief How many memory write operations were performed 
+             * 
+             * @return size_t allocation count
+             */
+            inline size_t write_count() const { return m_read_counter; }
+
         private:
             /**
              * @brief Next possible position for a new memory segment
@@ -166,11 +194,107 @@ namespace TacRunner
              * 
              */
             MemoryMap m_memory_map;
+
+            /**
+             * @brief How many memory allocations were performed 
+             * 
+             */
+            size_t m_allocations_counter;
+
+            /**
+             * @brief How many memory free were performed 
+             * 
+             */
+            size_t m_free_counter;
+
+            /**
+             * @brief how many read operations were performed
+             * 
+             */
+            size_t m_read_counter;
+
+            /**
+             * @brief How many write operations were performed
+             * 
+             */
+            size_t m_write_counter;
     };
 
     class VirtualStack
     {
-        // WIP
+        public:
+
+        /**
+         * @brief push 'count' bytes of data into the stack, from 'memory'
+         * 
+         * @param memory Data buffer where the data will be copied from
+         * @param count How many bytes to copy from buffer
+         * 
+         * @return success status, 0 un success, 1 on failure
+         */
+        uint push_memory(const std::byte *memory, std::size_t count);
+
+        /**
+         * @brief pop 'count' bytes of memory from the stack
+         * 
+         * @param count 
+         * 
+         * @return success status, 0 un success, 1 on failure
+         */
+        uint pop_memory(size_t count);
+
+        /**
+         * @brief Stack pointer, the next available position where to store data
+         * 
+         * @return size_t current stack pointer
+         */
+        inline size_t stack_pointer() const { return m_stack_pointer; }
+
+        /**
+         * @brief   Set the stack pointer value. Use with caution as this 
+         *          is not checked for consistency
+         * @param new_sp new stack pointer to check
+         */
+        inline void set_stack_pointer(size_t new_sp) { m_stack_pointer = new_sp; } 
+
+        /**
+         * @brief How many stack push operations were performed
+         * 
+         * @return size_t how many push operations were performed so far
+         */
+        inline size_t push_count() const { return m_push_count; }
+
+        /**
+         * @brief How many stack pop operations were performed
+         * 
+         * @return size_t how many pop operations were performed so far
+         */
+        inline size_t pop_count() const { return m_pop_count; }
+
+        private:
+        /**
+         * @brief Current stack pointer, the next available position where to store data
+         * 
+         */
+        size_t m_stack_pointer;
+
+        /**
+         * @brief Memory Buffer
+         * 
+         */
+        std::byte m_memory[STACK_MEMORY_SIZE];
+
+        /**
+         * @brief How many stack push operations were performed
+         * 
+         */
+        size_t m_push_count;
+
+        /**
+         * @brief How many stack pop operations were performed
+         * 
+         */
+        size_t m_pop_count;
     };
 
     /**

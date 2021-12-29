@@ -29,6 +29,11 @@ std::string MemoryChunk::str() const
 // -- < Virtual Heap implementation > -----------------------
 uint VirtualHeap::malloc(size_t size)
 {
+    if (size == 0)
+    {
+        App::warning("Trying to allocate 0 bytes of heap memory");
+        return 0;
+    }
     // Create new chunk for this memory
     MemoryChunk chunk(size, m_next_memory_position);
     m_next_memory_position += size;
@@ -36,6 +41,7 @@ uint VirtualHeap::malloc(size_t size)
     // Add position to memory map
     m_memory_map.insert({chunk.start_pos(), chunk});
 
+    m_allocations_counter ++;
     return chunk.start_pos();
 }
 
@@ -55,13 +61,17 @@ uint VirtualHeap::free(uint virtual_position)
 
     // Erase position if exists
     m_memory_map.erase(pos);
+    m_free_counter ++;
     return SUCCESS;
 }
 
 uint VirtualHeap::memcopy(uint virtual_position, const std::byte * bytes, size_t count)
 {
     if (count == 0)
+    {
+        m_write_counter++;
         return SUCCESS; // nothing to do if count is 0
+    }
 
     // Sanity check:
     if (!is_valid(virtual_position, count))
@@ -80,6 +90,7 @@ uint VirtualHeap::memcopy(uint virtual_position, const std::byte * bytes, size_t
     // Perform memcopy
     auto memory = chunk.memory().get();
     memcpy(memory, bytes, count);
+    m_write_counter++;
     return SUCCESS;
 }
 
@@ -108,3 +119,55 @@ bool VirtualHeap::is_valid(uint virtual_position, size_t n_bytes) const
     auto chunk_end = chunk.start_pos() + chunk.size() - 1;
     return virtual_position + n_bytes - 1 <= chunk_end;
 }
+
+// -- < Virtual Stack Implementation > ------------------------------
+
+uint VirtualStack::push_memory(const std::byte *memory, std::size_t count)
+{
+    // Check if nothing to do 
+    if (count == 0)
+    {
+        m_push_count++;
+        App::warning("Trying to push 0 bytes of memory into the stack, ignoring instruction");
+        return SUCCESS;
+    }
+
+    // Check if memory allocation will raise stack overflow
+    if (m_stack_pointer + count >= STACK_MEMORY_SIZE)
+    {
+        std::stringstream ss;
+        ss  << "trying to allocate " << count 
+            << " bytes of memory, which will cause stack overflow. Current stack pointer: " 
+            << m_stack_pointer;
+        App::error(ss.str());
+
+        return FAIL;
+    }
+
+    // copy memory to stack
+    memcpy(m_memory, memory, count);
+
+    // update sp
+    m_stack_pointer += count;
+    m_push_count++;
+
+    return SUCCESS;
+}
+
+uint VirtualStack::pop_memory(size_t count)
+{
+    if(count > m_stack_pointer)
+    {
+        std::stringstream ss;
+        ss  << "Trying to free " << count << " bytes of memory, which will cause "
+            << "a stack underflow exception";
+
+        return FAIL;
+    }
+
+    m_stack_pointer -= count;
+    m_pop_count++;
+    return SUCCESS;
+}
+
+
