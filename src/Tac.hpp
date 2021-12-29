@@ -17,7 +17,7 @@ namespace TacRunner {
      */
     enum class Instr
     {
-        METASTATICV,
+        METASTATICV = 0,
         METALABEL,
         METASTRING,
         ASSIGNW,
@@ -53,7 +53,8 @@ namespace TacRunner {
         READ,
         READC,
         METAFUNBEGIN,
-        METAFUNEND
+        METAFUNEND,
+        __LAST__ // so we can iterate over the enum class
     };
 
     /**
@@ -155,6 +156,7 @@ namespace TacRunner {
         
         std::string str() const;
         inline Instr instr() const {return m_instr;}
+        inline const std::vector<Value>& args() const { return m_args; }
         
     private:
         Instr m_instr;

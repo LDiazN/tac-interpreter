@@ -19,7 +19,9 @@
 // Size of the stack memory
 #define STACK_MEMORY_SIZE 314572800
 #define WORD_SIZE 4
-#define REGISTER_TYPE uint32_t
+#define REGISTER_TYPE uint32_t // unsigned int 32 bits as register, to simulate a 32 bits machine
+#define BASE "BASE"   // base special variable name
+#define STACK "STACK" // stack special variable name 
 
 namespace TacRunner 
 {
@@ -31,6 +33,9 @@ namespace TacRunner
 
     // Map from 
     using MemoryMap = std::map<uint, MemoryChunk>;
+
+    // Map from name of register (temporal) to its actual value
+    using Registers = std::map<std::string, REGISTER_TYPE>;
 
     class MemoryChunk 
     {
@@ -110,6 +115,7 @@ namespace TacRunner
                             , m_memory_map()
                             , m_allocations_counter(0)
                             , m_free_counter(0)
+                            , m_allocated_memory(0)
             { }
 
             /**
@@ -241,12 +247,19 @@ namespace TacRunner
              * 
              */
             size_t m_write_counter;
+
+            /**
+             * @brief How much memory was allocated this far
+             * 
+             */
+            uint64_t m_allocated_memory;
     };
 
     class VirtualStack
     {
         public:
         VirtualStack();
+
         /**
          * @brief push 'count' bytes of data into the stack, from 'memory'
          * 
@@ -351,10 +364,105 @@ namespace TacRunner
      */
     class TacMachine
     {
+        public:
+        /**
+         * @brief Program status
+         * 
+         */
+        enum class Status
+        {
+            NOT_STARTED,
+            RUNNING,
+            ERROR,
+            FINISHED
+        };
 
         public:
+        TacMachine(Program program);
+
+        /**
+         * @brief Try to run the locally stored tac program
+         * 
+         */
+        void run_tac_program();
+
+        /**
+         * @brief Set the register value, if it exists, overwrite it,
+         * 
+         * @param reg_name Register name
+         * @param value    New value
+         */
+        void set_register(const std::string &reg_name, REGISTER_TYPE value);
+
+        /**
+         * @brief Get a register's value, and return success status
+         * 
+         * @param reg_name  register name 
+         * @param out_value where to store return value
+         * @return uint sucess status, 0 on success, 1 on failure
+         */
+        uint get_register(const std::string &reg_name, REGISTER_TYPE &out_value);
+
+        /**
+         * @brief Current program position, next instruction to execute, not yet executed
+         * 
+         * @return uint current program position
+         */
+        inline uint program_counter() const { return m_program_counter; }
+
+        /**
+         * @brief Current frame position
+         * 
+         * @return uint frame position 
+         */
+        inline uint frame_pointer() const { return m_frame_pointer; }
+
+        /**
+         * @brief Current stack position, next free position
+         * 
+         * @return uint stack position
+         */
+        inline uint stack_pointer() const { return m_stack.stack_pointer(); }
+
+        /**
+         * @brief Current machine status
+         * 
+         * @return Status 
+         */
+        inline Status status() const { return m_status; }
+
+        /**
+         * @brief Return a human readable string representation of the tac machine
+         * 
+         * @param show_memory If should show memory of stack and heap, this might be a problem 
+         *                    when there's much memory allocated
+         * @return std::string human readable string
+         */
+        std::string str(bool show_memory = false, bool show_labels = false, bool show_registers = false);
+
+        static std::string show_status(Status status);
 
         private:
+        /**
+         * @brief Run a single tac instruction. Successful execution will increase the program counter
+         * 
+         * @param tac instruction to run
+         */
+        void run_tac_instruction(Tac tac);
+
+        /**
+         * @brief Set the instruction count to 0 for every instruction
+         * 
+         */
+        void reset_instruction_count();
+
+        /**
+         * @brief Set the up label map object to match the stored program 
+         * 
+         */
+        void set_up_label_map();
+
+        private: 
         /**
          * @brief Program beeing run 
          * 
@@ -365,7 +473,13 @@ namespace TacRunner
          * @brief Variable indicating at which point in the program is this program
          * 
          */
-        uint    m_program_counter;
+        size_t    m_program_counter;
+
+        /**
+         * @brief Variable indicating at which point in the program is this program
+         * 
+         */
+        REGISTER_TYPE  m_frame_pointer;
         
         /**
          * @brief Map from labels to line numbers
@@ -378,6 +492,30 @@ namespace TacRunner
          * 
          */
         VirtualHeap m_heap;
+
+        /**
+         * @brief Stack Memory
+         * 
+         */
+        VirtualStack m_stack;
+
+        /**
+         * @brief How many of which instructions were found
+         * 
+         */
+        std::map<Instr, uint64_t> m_instruction_count;
+
+        /**
+         * @brief Program status
+         * 
+         */
+        Status m_status;
+
+        /**
+         * @brief Registers identified by name and their corresponding value
+         * 
+         */
+        Registers m_registers;
 
     };
 }

@@ -2,6 +2,7 @@
 #include "Application.hpp"
 #include <sstream>
 #include <string.h>
+#include <assert.h>
 
 using namespace TacRunner;
 
@@ -50,6 +51,7 @@ uint VirtualHeap::malloc(size_t size)
     m_memory_map.insert({chunk.start_pos(), chunk});
 
     m_allocations_counter ++;
+    m_allocated_memory += size;
     return chunk.start_pos();
 }
 
@@ -146,6 +148,14 @@ std::string VirtualHeap::str(bool show_memory) const
     ss << "\t- Memory free count: "         << m_free_counter           << std::endl;
     ss << "\t- Currently stored blocks: "   << m_memory_map.size()      << std::endl;
     ss << "\t- Next Free Poistion: "        << m_next_memory_position   << std::endl;
+    ss << "\t- Overall allocated memory: "  << m_allocated_memory;
+    
+    // Print in mb if too much bytes
+    if (m_allocated_memory > 1024*1024)
+        ss << "(" << m_allocated_memory / (1024*1024) << " MB)" ;
+
+    ss << std::endl;
+
     ss << "\t- Memory Chunks: " << std::endl;
 
     for(auto &[_, chunk] : m_memory_map)
@@ -234,4 +244,194 @@ std::string VirtualStack::str(bool show_memory) const
     }
 
     return ss.str();
+}
+
+// -- < Tac Machine implementation > -----------------------------------
+
+TacMachine::TacMachine(Program program)
+    : m_program(program)
+    , m_program_counter(0)
+    , m_frame_pointer(0)
+    , m_heap()
+    , m_stack()
+    , m_status(Status::NOT_STARTED)
+    , m_registers()
+{
+    // initialize instruction counting
+    reset_instruction_count();
+
+    // Create instruction map
+    set_up_label_map();
+}
+
+void TacMachine::run_tac_program()
+{
+    m_status = Status::RUNNING;
+    m_program_counter = 0;
+    while(m_status != Status::FINISHED)
+    {
+        // Check if the program finished
+        if (m_program_counter == m_program.size())
+        {
+            m_status = Status::FINISHED;
+            continue;
+        }
+
+        // Consistency checking
+        assert(m_program_counter >= 0 && m_program_counter < m_program.size() && "Program counter out of bound");
+
+        // Run a single instruction
+        run_tac_instruction(m_program[m_program_counter]);
+        m_program_counter++;
+    }
+}
+
+void TacMachine::set_register(const std::string &reg_name, REGISTER_TYPE value)
+{
+    // If one of the special variables, override register map assign
+    if (reg_name == BASE)
+    {
+        m_frame_pointer = value;
+        return;
+    }
+    else if ( reg_name == STACK)
+    {
+        m_stack.set_stack_pointer(static_cast<size_t>(value));
+        return;
+    }
+
+    m_registers[reg_name] = value;
+}
+
+uint TacMachine::get_register(const std::string &reg_name, REGISTER_TYPE &out_value)
+{
+    // Check if register is special register
+    if (reg_name == BASE)
+    {
+        out_value = m_frame_pointer;
+        return SUCCESS;
+    }
+    else if(reg_name == STACK)
+    {
+        out_value = static_cast<REGISTER_TYPE>(m_stack.stack_pointer());
+        return SUCCESS;
+    }
+
+    auto it = m_registers.find(reg_name);
+    if (it == m_registers.end()) // could not find it
+    {
+        stringstream ss;
+        ss << "Trying to access invalid register: '" << reg_name << "'" << std::endl;
+        App::error(ss.str());
+
+        return FAIL;
+    }
+
+    auto &[_, value] = *it;
+
+    return value;
+}
+
+void TacMachine::run_tac_instruction(Tac tac)
+{
+    App::warning("Not yet implemented: run_tac_instruction");
+    stringstream ss;
+    ss << "running instruction: " << tac.str();
+    App::trace(ss.str());
+}
+
+void TacMachine::reset_instruction_count()
+{
+    for(int int_inst = 0; int_inst != static_cast<int>(Instr::__LAST__); int_inst++)
+    {
+        Instr inst = static_cast<Instr>(int_inst);
+        m_instruction_count[inst] = 0;
+    }
+}
+
+void TacMachine::set_up_label_map()
+{
+    m_label_map.clear();
+    // Find labels in program
+    for(size_t i = 0; i < m_program.size(); i++)
+    {
+        auto const &t = m_program[i];
+        if (t.instr() == Instr::METALABEL) // if label, get instruction name (first argument)
+        {
+            const auto &args = t.args();
+            // Label accepts just one arg, its name
+            assert(args.size() == 1 && "Error: An @label instruction should provide name of label"); 
+
+            // get value of name 
+            const auto &name_val = args[0];
+            assert(name_val.is<std::string>() && "Error: The only argument of @label should be its name, a string");
+            const auto &name = name_val.get<std::string>();
+
+            m_label_map[name] = i;
+        }
+    }
+}
+
+std::string TacMachine::str(bool show_memory, bool show_labels, bool show_registers)
+{
+    std::stringstream ss;
+    ss << "-- << TAC MACHINE >> ----------------------------------------" << std::endl;
+    ss << "- Program Counter (PC): " << m_program_counter << std::endl;
+    ss << "- Frame Pointer (FP): " << m_frame_pointer << std::endl;
+    ss << "- Current Instruction: " << m_program[m_program_counter].str() << std::endl;
+    ss << "- Program Status: " << show_status(m_status) << std::endl;
+    ss << "- Currently active registers: " << m_registers.size() << std::endl;
+
+    if (show_registers)
+    {
+        ss << "- Registers: " << std::endl;
+        for(auto &[name, value] : m_registers)
+            ss << "\t- " << name << " = " << std::hex << value;
+        ss << std::endl;
+    }
+
+    if(show_labels)
+    {
+        ss << "- Labels: " << std::endl;
+        if(m_label_map.empty())
+            ss << "<No labels to show>" << std::endl;
+        else
+        {
+            for(auto &[name, line_num] : m_label_map)
+                ss << "\t+ " << name << " : " << line_num << std::endl;
+        }
+    }
+
+    ss << m_stack.str() << std::endl;
+    ss << m_heap.str()  << std::endl;
+
+    return ss.str();
+}
+
+std::string TacMachine::show_status(Status status)
+{
+    switch (status)
+    {
+    case Status::ERROR:
+        return "ERROR";
+        break;
+    case Status::NOT_STARTED:
+        return "NOT_STARTED";
+        break;
+    case Status::FINISHED:
+        return "FINISHED";
+        break;
+    case Status::RUNNING:
+        return "RUNNING";
+        break;
+    default:
+        std::stringstream ss;
+        ss << "Unrecognized program status: " << static_cast<int>(status);
+        App::error(ss.str());
+        break;
+    }
+
+    assert(false && "Invalid status value");
+
+    return "INVALID STATUS VALUE";
 }

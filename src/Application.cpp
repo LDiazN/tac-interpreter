@@ -2,6 +2,7 @@
 #include "Application.hpp"
 #include "TacReader.hpp"
 #include "Tac.hpp"
+#include "TacMachine.hpp"
 
 // C++ includes 
 #include <sstream>
@@ -64,8 +65,26 @@ namespace TacRunner
 
         App::success("TAC code successfully parsed.");
 
-        // WIP
-        
+        // Try to run program 
+        App::trace("Creating tac machine...");
+        TacMachine machine(tac_code);
+
+        App::trace("Starting program...");
+        // vv TESTING AREA, DELETE LATER --------------------------------------------------------------------------------
+
+
+
+
+        // ^^ TESTING AREA, DELETE LATER --------------------------------------------------------------------------------
+
+        // Display summary 
+        if (machine.status() == TacMachine::Status::ERROR)
+            App::error("Program execution failed");
+        else if(machine.status() == TacMachine::Status::FINISHED)
+            App::success("Program execution successful");
+
+        App::trace("Resulting state summary: ");
+        cout << machine.str(false, false, true) << endl;
     }
 
     std::string App::help_msg() const
