@@ -15,14 +15,22 @@ MemoryChunk::MemoryChunk(uint size, uint start_pos)
         App::error("Error creating memory chunk: could not allocate specified bytes, malloc returned NULL");
 }
 
-std::string MemoryChunk::str() const
+std::string MemoryChunk::str(bool show_memory) const
 {
     std::stringstream ss;
     ss  << "MemoryChunk{ position = " << m_start_pos 
         << ", size = " << m_size 
-        << ", memory = " << std::hex << m_memory 
-        << " }";
+        << ", memory_addr = " << std::hex << m_memory;
+    
+    if (show_memory)
+    {
+        ss << ", memory = [";
+        for (size_t i = 0; i < m_size; i++)
+            ss << std::dec << (uint) m_memory[i] << ", ";
+        ss << "]";
+    }
 
+    ss << " }";
     return ss.str();
 }
 
@@ -65,7 +73,7 @@ uint VirtualHeap::free(uint virtual_position)
     return SUCCESS;
 }
 
-uint VirtualHeap::memcopy(uint virtual_position, const std::byte * bytes, size_t count)
+uint VirtualHeap::write(uint virtual_position, const std::byte * bytes, size_t count)
 {
     if (count == 0)
     {
@@ -87,11 +95,21 @@ uint VirtualHeap::memcopy(uint virtual_position, const std::byte * bytes, size_t
     // Safe since we know the memory chunk is valid
     auto &[_, chunk] = *it;
 
-    // Perform memcopy
+    // Perform write
     auto memory = chunk.memory().get();
-    memcpy(memory, bytes, count);
+    memcpy(memory + (virtual_position - chunk.start_pos()), bytes, count);
     m_write_counter++;
     return SUCCESS;
+}
+
+uint VirtualHeap::write_word(REGISTER_TYPE word, uint virtual_position)
+{   
+
+    stringstream ss;
+    ss << "About to write a word to position: " << virtual_position;
+    App::trace(ss.str());
+    
+    return write(virtual_position, (std::byte *) &word, WORD_SIZE);
 }
 
 bool VirtualHeap::is_valid(uint virtual_position, size_t n_bytes) const
@@ -118,6 +136,22 @@ bool VirtualHeap::is_valid(uint virtual_position, size_t n_bytes) const
     // If virtual position is greater or equal than start + size, it's an invalid position
     auto chunk_end = chunk.start_pos() + chunk.size() - 1;
     return virtual_position + n_bytes - 1 <= chunk_end;
+}
+
+std::string VirtualHeap::str(bool show_memory)
+{
+    std::stringstream ss;
+    ss << "[ Heap Memory ]" << std::endl;
+    ss << "\t- Memory allocation count: "   << m_allocations_counter    << std::endl;
+    ss << "\t- Memory free count: "         << m_free_counter           << std::endl;
+    ss << "\t- Currently stored blocks: "   << m_memory_map.size()      << std::endl;
+    ss << "\t- Next Free Poistion: "        << m_next_memory_position   << std::endl;
+    ss << "\t- Memory Chunks: " << std::endl;
+
+    for(auto &[_, chunk] : m_memory_map)
+        ss << "\t\t+ " << chunk.str(show_memory) << std::endl;
+
+    return ss.str();
 }
 
 // -- < Virtual Stack Implementation > ------------------------------

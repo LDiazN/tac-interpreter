@@ -18,6 +18,8 @@
 
 // Size of the stack memory
 #define STACK_MEMORY_SIZE 314572800
+#define WORD_SIZE 4
+#define REGISTER_TYPE uint32_t
 
 namespace TacRunner 
 {
@@ -60,7 +62,7 @@ namespace TacRunner
              * 
              * @return std::string A human readable string representing this object
              */
-            std::string str() const;
+            std::string str(bool show_memory = true) const;
 
             // Make virtual heap friend as that class manages a set of this object
             friend class VirtualHeap;
@@ -104,7 +106,10 @@ namespace TacRunner
              * @brief Construct a new Heap Memory object
              * 
              */
-            VirtualHeap() : m_next_memory_position(1), m_memory_map() 
+            VirtualHeap()   : m_next_memory_position(1)
+                            , m_memory_map()
+                            , m_allocations_counter(0)
+                            , m_free_counter(0)
             { }
 
             /**
@@ -132,7 +137,16 @@ namespace TacRunner
              * @param virtual_position a virtual memory address that should be a valid address inside the virtual heap
              * @return uint success status, 0 un success, 1 on failure
              */
-            uint memcopy(uint virtual_position, const std::byte * bytes, size_t count);
+            uint write(uint virtual_position, const std::byte * bytes, size_t count);
+
+            /**
+             * @brief Try to write a word into the specified location
+             * 
+             * @param word Word to write
+             * @param virtual_position where to write the word 
+             * @return uint status: 0 un success, 1 on failure
+             */
+            uint write_word(REGISTER_TYPE word, uint virtual_position);
 
             /**
              * @brief Tells if a given position is a valid memory position
@@ -153,6 +167,15 @@ namespace TacRunner
              * @return false otherwise
              */
             bool is_valid(uint virtual_position, size_t n_bytes) const;
+
+            /**
+             * @brief Create a string representation of the heap object's state
+             * 
+             * @param show_memory If should show memory actual value, might be a problem when 
+             *                    large segments of memory are stored
+             * @return std::string string representation
+             */
+            std::string str(bool show_memory = false);
 
             /**
              * @brief How many memory allocations were performed 
@@ -235,13 +258,28 @@ namespace TacRunner
         uint push_memory(const std::byte *memory, std::size_t count);
 
         /**
+         * @brief Try to write a word in the top of the stack 
+         * 
+         * @param word word to write
+         * @return uint value to push 
+         */
+        inline uint push_word(REGISTER_TYPE word) { return push_memory((std::byte *) &word, WORD_SIZE); }
+
+        /**
          * @brief pop 'count' bytes of memory from the stack
          * 
-         * @param count 
+         * @param count how much memory to pop
          * 
          * @return success status, 0 un success, 1 on failure
          */
         uint pop_memory(size_t count);
+
+        /**
+         * @brief Write a word into stack memory, at the top of the stack
+         * 
+         * @return uint 
+         */
+        inline uint pop_word() { return pop_memory(WORD_SIZE); }
 
         /**
          * @brief Stack pointer, the next available position where to store data
