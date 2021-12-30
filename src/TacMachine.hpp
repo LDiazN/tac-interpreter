@@ -81,6 +81,7 @@ namespace TacRunner
 
             // Make virtual heap friend as that class manages a set of this object
             friend class VirtualHeap;
+            friend class VirtualStaticMemory;
 
         private:
             /**
@@ -437,9 +438,158 @@ namespace TacRunner
         size_t m_write_count;
     };
 
+    /**
+     * @brief Static memory emulator. It behaves the same as the heap, but without 
+     * a free operation, as the static memory stays in the program forever
+     * 
+     */
     class VirtualStaticMemory
     {
-        // WIP
+        public:
+            /**
+             * @brief Construct a new Static Memory object
+             * 
+             */
+            VirtualStaticMemory() 
+                : m_next_memory_position(1)
+                , m_memory_map()
+                , m_allocations_counter(0)
+                , m_allocated_memory(0)
+            { }
+
+            /**
+             * @brief Allocate 'size' bytes of memory in the virtual static memory, return the position if 
+             *        it was possible, or 0 otherwise
+             * @param size how many bytes to store 
+             * @return uint virtual direction 
+             */
+            uint get(size_t size);
+
+            /**
+             * @brief copy 'count' bytes from 'bytes' to 'virtual_position' (in the virtual static memory)
+             * 
+             * @param bytes memory buffer where the memory will be copied from
+             * @param count how many bytes from 'bytes' buffer to copy 
+             * @param virtual_position a virtual memory address that should be a valid address inside the virtual static memory
+             * @return uint success status, 0 un success, 1 on failure
+             */
+            uint write(uint virtual_position, const std::byte * bytes, size_t count);
+
+            /**
+             * @brief Try to write a word into the specified location
+             * 
+             * @param word Word to write
+             * @param virtual_position where to write the word 
+             * @return uint status: 0 un success, 1 on failure
+             */
+            uint write_word(REGISTER_TYPE word, uint virtual_position) {return write(virtual_position, (std::byte *) &word, WORD_SIZE); } ;
+
+            
+            /**
+             * @brief Read 'count' bytes from 'virtual_position' to buffer 'bytes'
+             * 
+             * @param virtual_position where the memory will be read from
+             * @param bytes where the memory will be stored 
+             * @param count how many bytes to read
+             * @return uint success status, 0 un success, 1 on failure
+             */
+            uint read(uint virtual_position, std::byte *bytes, size_t count);
+        
+            /**
+             * @brief Read a word from the given 'virtual_position' into 'outword'
+             * 
+             * @param virtual_position where to read the word from
+             * @param out_word         where to write the word value
+             * @return uint success status, 0 un success, 1 on failure
+             */
+            inline uint read_word(uint virtual_position, REGISTER_TYPE &out_word) { return read(virtual_position, (std::byte *) &out_word, sizeof(out_word)); }
+
+            /**
+             * @brief Tells if a given position is a valid memory position
+             * 
+             * @param virtual_position Position in the static memory
+             * @return true If this is a valid allocated position
+             * @return false otherwise
+             */
+            inline bool is_valid(uint virtual_position) const { return is_valid(virtual_position, 1); };
+
+            /**
+             * @brief Tells if a given memory segment specified by its start position
+             *        and size in bytes is a valid one
+             * 
+             * @param virtual_position Position in the static memory
+             * @param n_bytes How many bytes to check starting from 'virtual_position'
+             * @return true If this is a valid allocated position
+             * @return false otherwise
+             */
+            bool is_valid(uint virtual_position, size_t n_bytes) const;
+
+            /**
+             * @brief Create a string representation of the static memory object's state
+             * 
+             * @param show_memory If should show memory actual value, might be a problem when 
+             *                    large segments of memory are stored
+             * @return std::string string representation
+             */
+            std::string str(bool show_memory = false) const;
+
+            /**
+             * @brief How many memory allocations were performed 
+             * 
+             * @return size_t allocation count
+             */
+            inline size_t allocations_count() const { return m_allocations_counter; }
+
+            /**
+             * @brief How many memory read operations were performed 
+             * 
+             * @return size_t allocation count
+             */
+            inline size_t read_count() const { return m_read_counter; }
+
+            /**
+             * @brief How many memory write operations were performed 
+             * 
+             * @return size_t allocation count
+             */
+            inline size_t write_count() const { return m_read_counter; }
+
+        private:
+            /**
+             * @brief Next possible position for a new memory segment
+             * 
+             */
+            uint m_next_memory_position;
+
+            /**
+             * @brief Keep a mapping between positions and memory chunks
+             * 
+             */
+            MemoryMap m_memory_map;
+
+            /**
+             * @brief How many memory allocations were performed 
+             * 
+             */
+            size_t m_allocations_counter;
+
+            /**
+             * @brief how many read operations were performed
+             * 
+             */
+            size_t m_read_counter;
+
+            /**
+             * @brief How many write operations were performed
+             * 
+             */
+            size_t m_write_counter;
+
+            /**
+             * @brief How much memory was allocated this far
+             * 
+             */
+            uint64_t m_allocated_memory;
     };
 
     /**
@@ -448,7 +598,8 @@ namespace TacRunner
      *        machine. But the internal memory manager objects doesn't have 
      *        a clue about it, their addresses start at 0, so this 
      *        manager object will transform total adresses into 
-     *        specific adresses 
+     *        specific adresses.
+     * 
      */
     class MemoryManager
     {
@@ -641,7 +792,30 @@ namespace TacRunner
 
         public: // Static memory section 
 
-        // WIP
+        /**
+         * @brief Get a static memory segment
+         * 
+         * @param size ammount of memory to request
+         * @return uint success status, 0 un success, 1 on failure
+         */
+        inline uint get_static_memory(size_t size) { return m_static.get(size); }
+
+        /**
+         * @brief Tells if this is a valid static memory address
+         * 
+         * @param addr 
+         * @param n_bytes 
+         * @return true 
+         * @return false 
+         */
+        inline bool is_valid_static_static_addr(uint addr, size_t n_bytes = 1) const { return m_static.is_valid(addr, n_bytes); }
+
+        /**
+         * @brief Get a const reference to the internally managed static memory
+         * 
+         * @return const VirtualStaticMemory& 
+         */
+        inline const VirtualStaticMemory& static_memory() const { return m_static; }
 
         private:
 

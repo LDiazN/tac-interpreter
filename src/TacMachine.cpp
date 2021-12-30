@@ -15,6 +15,9 @@ MemoryChunk::MemoryChunk(uint size, uint start_pos)
 {
     if(m_memory == nullptr)
         App::error("Error creating memory chunk: could not allocate specified bytes, malloc returned NULL");
+    auto mem_ptr = m_memory.get();
+
+    memset(mem_ptr, 0, m_size);
 }
 
 std::string MemoryChunk::str(bool show_memory) const
@@ -331,7 +334,139 @@ std::string VirtualStack::str(bool show_memory) const
     return ss.str();
 }
 
-// -- < Memory Manager implementation >
+// -- < Static Memory Manager implementation > -----------------------------------------------------
+
+uint VirtualStaticMemory::get(size_t size)
+{
+    if (size == 0)
+    {
+        App::warning("Trying to allocate 0 bytes of static memory");
+        return 0;
+    }
+    // Create new chunk for this memory
+    MemoryChunk chunk(size, m_next_memory_position);
+    m_next_memory_position += size;
+
+    // Add position to memory map
+    m_memory_map.insert({chunk.start_pos(), chunk});
+
+    m_allocations_counter ++;
+    m_allocated_memory += size;
+    return chunk.start_pos();
+}
+
+uint VirtualStaticMemory::write(uint virtual_position, const std::byte * bytes, size_t count)
+{
+    if (count == 0)
+    {
+        m_write_counter++;
+        return SUCCESS; // nothing to do if count is 0
+    }
+
+    // Sanity check:
+    if (!is_valid(virtual_position, count))
+    {
+        App::error("[segmentation fault] Trying to copy memory to invalid location in static memory.");
+        return FAIL;
+    }
+
+    // Get iterator pointing to first pair such that pair.key > virtual_position
+    auto it= m_memory_map.upper_bound(virtual_position);
+    it--;
+
+    // Safe since we know the memory chunk is valid
+    auto &[_, chunk] = *it;
+
+    // Perform write
+    auto memory = chunk.memory().get();
+    memcpy(memory + (virtual_position - chunk.start_pos()), bytes, count);
+    m_write_counter++;
+    return SUCCESS;
+}
+
+uint VirtualStaticMemory::read(uint virtual_position, std::byte *bytes, size_t count)
+{
+    // check if the memory segment is a valid one
+    auto status = is_valid(virtual_position, count);
+    auto last_pos = virtual_position + count - 1;
+    if (status == FAIL)
+    {
+        stringstream ss;
+        ss << "[segmentation fault] Trying to read memory out of bounds of heap. ";
+        ss << "From: " << virtual_position << " to: " << last_pos;
+        ss << " (relative to heap)";
+        App::error(ss.str());
+
+        return FAIL;
+    }
+
+    // now that the memory segment is safe, we can read from it
+    auto it = m_memory_map.upper_bound(virtual_position);
+    assert(it != m_memory_map.begin() && "should be a valid block");
+
+    it--;
+    auto const& [start_pos, chunk] = *(it);
+    auto actual_index = virtual_position - start_pos;
+
+    // Read memory
+    memcpy(bytes, chunk.memory().get() + actual_index, count);
+
+    // Update read count 
+    m_read_counter ++;
+    return SUCCESS;
+}
+
+bool VirtualStaticMemory::is_valid(uint virtual_position, size_t n_bytes) const
+{
+
+    // Every position is invalid if no memory is allocated
+    if (m_memory_map.empty())
+        return false;
+
+    auto pos = m_memory_map.upper_bound(virtual_position);
+    // Check if element is lower than the first one
+    if (pos == m_memory_map.begin())
+    {
+        // Lower than the minimum
+        return false;
+    }
+
+    // We have the first > virtual_position, we want the first <= virtual_position, 
+    // so we substract 1 if it's not the start
+    pos--; 
+
+    auto &[_, chunk] = *pos;
+
+    // If virtual position is greater or equal than start + size, it's an invalid position
+    auto chunk_end = chunk.start_pos() + chunk.size() - 1;
+    return virtual_position + n_bytes - 1 <= chunk_end;
+}
+
+std::string VirtualStaticMemory::str(bool show_memory) const
+{
+    std::stringstream ss;
+    ss << "[ Static Memory ]" << std::endl;
+    ss << "\t- Memory allocation count: "   << m_allocations_counter    << std::endl;
+    ss << "\t- Currently stored blocks: "   << m_memory_map.size()      << std::endl;
+    ss << "\t- Next Free Poistion: "        << m_next_memory_position   << std::endl;
+    ss << "\t- Overall allocated memory: "  << m_allocated_memory;
+    
+    // Print in mb if too much bytes
+    if (m_allocated_memory > 1024*1024)
+        ss << "(" << m_allocated_memory / (1024*1024) << " MB)" ;
+
+    ss << std::endl;
+
+    ss << "\t- Memory Chunks: " << std::endl;
+
+    for(auto &[_, chunk] : m_memory_map)
+        ss << "\t\t+ " << chunk.str(show_memory) << std::endl;
+
+    return ss.str();
+}
+
+
+// -- < Memory Manager implementation > ------------------------------------------------------------
 
 std::string MemoryManager::memory_type_to_str(MemoryType mem_type)
 {
@@ -365,7 +500,7 @@ uint MemoryManager::type_of(uint virtual_position, MemoryManager::MemoryType &ou
 std::string MemoryManager::str(bool show_memory) const
 {
     std::stringstream ss;
-
+    ss << m_static.str(show_memory) << std::endl;
     ss << m_stack.str(show_memory) << std::endl;
     ss << m_heap.str(show_memory) << std::endl;
 
@@ -418,8 +553,7 @@ uint MemoryManager::write(const std::byte *bytes, size_t count, uint virtual_add
         return m_heap.write(actual_addr, bytes, count);
         break;
     case MemoryType::STATIC:
-        App::warning("writing to static memory still WIP");
-        return SUCCESS;
+        return m_static.write(actual_addr, bytes, count);
         break;
     case MemoryType::STACK_MEM:
         return m_stack.write(actual_addr, bytes, count);
