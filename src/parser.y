@@ -297,7 +297,7 @@ T       : METALABEL ID
                 {
                     $$ = TacRunner::Tac($1, TacRunner::Value($2));
                 }
-        | PRINT   Variable
+        | PRINT  Variable
                 {
                     $$ = TacRunner::Tac($1, TacRunner::Value($2));
                 }

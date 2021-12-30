@@ -17,12 +17,22 @@
 #include <memory>
 
 // Size of the stack memory
-#define STACK_MEMORY_SIZE 314572800
+#define MACHINE_MEMORY_SIZE 1000000000
+
+#define STACK_MEMORY_PORTION 40 // how much of the available memory is there for the stack
+#define HEAP_MEMORY_PORTION 40  // how much of the available memory is there for the heap
+#define STATIC_MEMORY_PORTION 20// how much of the available memory is there for the static memory 
+
+#define STACK_MEMORY_SIZE   MACHINE_MEMORY_SIZE / STACK_MEMORY_PORTION
+#define HEAP_MEMORY_SIZE    MACHINE_MEMORY_SIZE / HEAP_MEMORY_PORTION
+#define STATIC_MEMORY_SIZE  MACHINE_MEMORY_SIZE / STATIC_MEMORY_PORTION
+
 #define WORD_SIZE 4
 #define REGISTER_TYPE uint32_t // unsigned int 32 bits as register, to simulate a 32 bits machine
 #define BASE "BASE"   // base special variable name
 #define STACK "STACK" // stack special variable name 
 
+// Memory for each 
 namespace TacRunner 
 {
     // Forward declarations:
@@ -295,6 +305,25 @@ namespace TacRunner
         inline uint pop_word() { return pop_memory(WORD_SIZE); }
 
         /**
+         * @brief Write 'count' bytes to 'virtual_position' from 'bytes' buffer
+         * 
+         * @param virtual_position where the data will be copied into
+         * @param bytes where the data will be originally stored
+         * @param count how many bytes to copy
+         * @return uint success status, 0 on success, 1 on failure
+         */
+        uint write(uint virtual_position, std::byte *bytes, size_t count);
+
+        /**
+         * @brief copy a word to the specified position in the stack
+         * 
+         * @param virtual_position where to copy the word
+         * @param word word to copy 
+         * @return uint success status, 0 on success, 1 on failure
+         */
+        inline uint write_word(uint virtual_position, REGISTER_TYPE word) {return write(virtual_position, (std::byte*) &word, sizeof(word)); }
+
+        /**
          * @brief Stack pointer, the next available position where to store data
          * 
          * @return size_t current stack pointer
@@ -355,6 +384,241 @@ namespace TacRunner
          * 
          */
         size_t m_pop_count;
+    };
+
+    class VirtualStaticMemory
+    {
+        // WIP
+    };
+
+    /**
+     * @brief Abstracts memory management.
+     *        Every memory type has its own memory section in the virtual
+     *        machine. But the internal memory manager objects doesn't have 
+     *        a clue about it, their addresses start at 0, so this 
+     *        manager object will transform total adresses into 
+     *        specific adresses 
+     */
+    class MemoryManager
+    {
+        public:
+
+        /**
+         * @brief Possible type of memories
+         * 
+         */
+        enum class MemoryType
+        {
+            STACK_MEM,
+            HEAP,
+            STATIC
+        };
+
+        static std::string memory_type_to_str(MemoryType mem_type);
+
+        public: // General functions
+        /**
+         * @brief Get the type of the given memory position
+         * 
+         * @param virtual_position 
+         * @return MemoryType 
+         */
+        static uint type_of(uint virtual_position, MemoryManager::MemoryType &out_mem_type);
+
+        /**
+             * @brief Create a string representation of every memory manager state
+             * 
+             * @param show_memory If should show memory actual value, might be a problem when 
+             *                    large segments of memory are stored
+             * @return std::string string representation
+             */
+        std::string str(bool show_memory = false) const;
+
+        /**
+         * @brief Set 'count' bytes from 'bytes' to 'virtual_address', and return
+         *        its status
+         * 
+         * @param bytes where the data will come from
+         * @param count how many bytes to copy from data
+         * @param virtual_address address where the data will be copied into
+         * @return uint sucess status, 0 on success, 1 on failure
+         */
+        uint write_memory(std::byte *bytes, size_t count, uint virtual_address);
+
+        /**
+         * @brief Write a word into the given virtual address
+         * 
+         * @param word word to write
+         * @param virtual_address address where to copy this word
+         * @return uint sucess status, 0 on success, 1 on failure
+         */
+        inline uint write_word(REGISTER_TYPE word, uint virtual_address) { return write_memory((std::byte *) &word, sizeof(word), virtual_address); }
+
+        /**
+         * @brief Read "count" bytes of memory from "virtual_address" to "bytes" buffer
+         * 
+         * @param bytes Buffer where the data will be copied into
+         * @param count how many bytes to copy 
+         * @param virtual_address where to look for that data
+         * @return uint sucess status, 0 on success, 1 on failure
+         */
+        uint read_memory(std::byte *bytes, size_t count, uint virtual_address) const;
+
+        /**
+         * @brief Read a word from the specified virtual address
+         * 
+         * @param out_word where to store the word
+         * @param virtual_address where to read the word from
+         * @return uint success status, 0 on success, 1 on failure
+         */
+        inline uint read_word(REGISTER_TYPE& out_word, uint virtual_address) const { return read_memory((std::byte *) &out_word, sizeof(out_word), virtual_address); }
+
+        public: // Heap functions
+        /**
+         * @brief Allocate 'size' bytes of memory in the virtual heap memory, return the position if 
+         *        it was possible, or 0 otherwise
+         * @param size how many bytes to store 
+         * @return uint virtual address, a valid heap address
+         */
+        uint malloc(size_t size);
+
+        /**
+         * @brief Free the given virtual memory position, return 0 un success, 1 on failure. It should be 
+         *        a valid heap address
+         * 
+         * @param virtual_position Position returned by malloc function, might fail if the given position
+         *                         is not a one returned by malloc
+         * @return uint success status, 0 on success, 1 on failure
+         */
+        uint free(uint virtual_position);
+
+        /**
+         * @brief Tells if a given memory segment specified by its start position
+         *        and size in bytes is a valid one. 
+         * 
+         * @param virtual_position Position in the heap
+         * @param n_bytes How many bytes to check starting from 'virtual_position'. 
+         *                When n_bytes == 1, this function will tell you if this is a 
+         *                valid address.
+         * @return true If this is a valid allocated position
+         * @return false otherwise
+         */
+        bool is_valid_heap_addr(uint virtual_position, size_t n_bytes = 1) const;
+
+        /**
+         * @brief Get a const reference to the heap object 
+         * 
+         * @return  const VirtualHeap& const reference to the heap, so you 
+         *          can get some data 
+         */
+        inline const VirtualHeap& heap() const { return m_heap; }
+
+        public: // stack functions
+
+        /**
+         * @brief push 'count' bytes of data into the stack, from 'memory'
+         * 
+         * @param memory Data buffer where the data will be copied from
+         * @param count How many bytes to copy from buffer
+         * 
+         * @return success status, 0 un success, 1 on failure
+         */
+        inline uint push_memory(const std::byte *memory, std::size_t count) { return m_stack.push_memory(memory, count); }
+
+        /**
+         * @brief Try to write a word in the top of the stack 
+         * 
+         * @param word word to write
+         * @return uint value to push 
+         */
+        inline uint push_word(REGISTER_TYPE word) { return push_memory((std::byte *) &word, WORD_SIZE); }
+
+        /**
+         * @brief pop 'count' bytes of memory from the stack
+         * 
+         * @param count how much memory to pop
+         * 
+         * @return success status, 0 un success, 1 on failure
+         */
+        inline uint pop_memory(size_t count) { return m_stack.pop_memory(count); }
+
+        /**
+         * @brief Write a word into stack memory, at the top of the stack
+         * 
+         * @return uint 
+         */
+        inline uint pop_word() { return m_stack.pop_memory(WORD_SIZE); }
+
+        /**
+         * @brief Stack pointer, the next available position where to store data
+         * 
+         * @return size_t current stack pointer
+         */
+        size_t stack_pointer() const;
+
+        /**
+         * @brief Stack pointer, the next available position where to store data
+         * 
+         * @return size_t current stack pointer
+         */
+        inline size_t stack_pointer() const;
+
+        /**
+         * @brief   Set the stack pointer value. Use with caution as this 
+         *          is not checked for consistency
+         * @param new_sp new stack pointer to check
+         */
+        inline void set_stack_pointer(size_t new_sp); 
+
+        /**
+         * @brief How many stack push operations were performed
+         * 
+         * @return size_t how many push operations were performed so far
+         */
+        inline size_t push_count() const { return m_stack.push_count(); }
+
+        /**
+         * @brief How many stack pop operations were performed
+         * 
+         * @return size_t how many pop operations were performed so far
+         */
+        inline size_t pop_count() const { return m_stack.pop_count(); }
+
+        public: // Static memory section 
+
+        // WIP
+
+        private:
+        
+        /**
+         * @brief Find the actual position of a memory address
+         * 
+         * @param virtual_position Position you want to check its type and actual position
+         * @param out_mem_type     Type of this memory
+         * @param out_actual_pos   actual address in this memory type
+         * @return uint success status, 0 on success, 1 on failure. Failure usually means that this is not a valid memory 
+         *         address for whichever reason
+         */
+        static uint type_and_actual_pos_of(uint virtual_position, MemoryType &out_mem_type, uint &out_actual_pos);
+
+        private:
+        /**
+         * @brief Stack Memory
+         * 
+         */
+        VirtualStack m_stack;
+
+        /**
+         * @brief Heap Memory
+         * 
+         */
+        VirtualHeap m_heap;
+
+        /**
+         * @brief Static Memory
+         * 
+         */
+        VirtualStaticMemory m_static;
     };
 
     /**
@@ -447,8 +711,10 @@ namespace TacRunner
          * @brief Run a single tac instruction. Successful execution will increase the program counter
          * 
          * @param tac instruction to run
+         * 
+         * @return uint success status, 0 on success, 1 else
          */
-        void run_tac_instruction(Tac tac);
+        uint run_tac_instruction(const Tac &tac);
 
         /**
          * @brief Set the instruction count to 0 for every instruction
@@ -516,6 +782,15 @@ namespace TacRunner
          * 
          */
         Registers m_registers;
+
+        private:
+        // The following section contains functions for every instruction, every function
+        // returns its success status, 0 on success, 1 on failure
+
+        uint run_staticv(const Tac &tac);
+
+        
+
 
     };
 }

@@ -1,5 +1,6 @@
 #include "TacMachine.hpp"
 #include "Application.hpp"
+#include "Tac.hpp"
 #include <sstream>
 #include <string.h>
 #include <assert.h>
@@ -225,6 +226,33 @@ uint VirtualStack::pop_memory(size_t count)
     return SUCCESS;
 }
 
+uint VirtualStack::write(uint virtual_position, std::byte *bytes, size_t count)
+{
+    auto last_pos = virtual_position + count - 1;
+
+    // check if the given position is not outside the stack
+    if(last_pos >= STACK_MEMORY_SIZE)
+    {
+        stringstream ss;
+        ss << "[segmentation fault] Trying to write to a memory address that will be out of the stack";
+        App::error(ss.str());
+        return FAIL;
+    }
+
+    // Check if the position is outside the current stack
+    if(last_pos >= m_stack_pointer)
+    {
+        stringstream ss;
+        ss << "Writing in memory segment possibly out of the current active stack memory. ";
+        ss << "Starting from " << std::hex << virtual_position << " to " << std::hex << last_pos;
+        App::warning(ss.str());
+    }
+
+    // Write memory 
+    memcpy(m_memory, bytes, count);
+    return SUCCESS;
+}
+
 std::string VirtualStack::str(bool show_memory) const
 {
     std::stringstream ss;
@@ -244,6 +272,148 @@ std::string VirtualStack::str(bool show_memory) const
     }
 
     return ss.str();
+}
+
+// -- < Memory Manager implementation >
+
+std::string MemoryManager::memory_type_to_str(MemoryType mem_type)
+{
+    switch (mem_type)
+    {
+    case MemoryType::STATIC:
+        return "STATIC";
+        break;
+    
+    case MemoryType::HEAP:
+        return "HEAP";
+        break;
+
+    case MemoryType::STACK_MEM:
+        return "STACK";
+        break;
+    default:
+        break;
+    }
+
+    assert(false && "Invalid memory type");
+    return "<invalid memory type>"
+}
+
+uint MemoryManager::type_of(uint virtual_position, MemoryManager::MemoryType &out_mem_type)
+{
+    uint p;
+    return type_and_actual_pos_of(virtual_position, out_mem_type, p);
+}
+
+std::string MemoryManager::str(bool show_memory = false) const
+{
+    std::stringstream ss;
+
+    ss << m_stack.str() << std::endl;
+    ss << m_heap.str() << std::endl;
+
+    return ss.str();
+}
+
+uint MemoryManager::write_memory(std::byte *bytes, size_t count, uint virtual_address)
+{
+    uint actual_addr;
+    MemoryType type;
+    auto is_valid = type_and_actual_pos_of(virtual_address, type, actual_addr);
+    
+
+
+    // Check if this position is ok
+    if (is_valid == FAIL)
+    {
+        stringstream ss;
+        ss << "Trying to write to invalid memory address: " << std::hex << virtual_address;
+        App::error(ss.str());
+        return FAIL;
+    }
+
+    // Check if direction in last position is valid and inside the same type of memory
+    uint last_pos_virtual = virtual_address + count - 1;
+    MemoryType last_addr_type;
+    auto last_is_valid = type_of(last_pos_virtual, last_addr_type);
+
+    if (last_is_valid == FAIL) // if position is not valid
+    {
+        stringstream ss;
+        ss << "Trying to write up to an invalid memory address: " << std::hex << last_pos_virtual;
+        ss << " starting from " << std::hex << virtual_address;
+        App::error(ss.str());
+        return FAIL;
+    }
+    else if(last_addr_type != type) // if valid but in another memory type
+    {
+        stringstream ss;
+        ss << "Trying to write up to a memory address that is valid, but in another type of memory: " << std::hex << last_pos_virtual;
+        ss << " starting from " << std::hex << virtual_address << ". Initial position is of type " << memory_type_to_str(type);
+        ss << " but last position is of type " << memory_type_to_str(last_addr_type);
+
+        App::error(ss.str());
+        return FAIL;
+    }
+
+    // Write to the right type of memory
+    switch (type)
+    {
+    case MemoryType::HEAP:
+        return m_heap.write(actual_addr, bytes, count);
+        break;
+    case MemoryType::STATIC:
+        App::warning("writing to static memory still WIP");
+        return SUCCESS;
+        break;
+    case MemoryType::STACK_MEM:
+        return m_stack.write(actual_addr, bytes, count);
+        break;
+    default:
+        break;
+    }
+
+    stringstream ss;
+    ss << "Unrecognized type of memory: " << static_cast<int>(type);
+    App::error(ss.str());
+    assert(false);
+    
+    return FAIL;
+}
+
+uint MemoryManager::type_and_actual_pos_of(uint virtual_position, MemoryManager::MemoryType &out_mem_type, uint &out_actual_pos)
+{
+    auto static_start = 0;
+    auto static_end = static_start + STATIC_MEMORY_SIZE;
+    auto stack_start = static_end;
+    auto stack_end = stack_start + STACK_MEMORY_SIZE;
+    auto heap_start = stack_end;
+    auto heap_end = heap_start + HEAP_MEMORY_SIZE;
+
+    if( static_start <= virtual_position && virtual_position < static_end)
+    {
+        out_mem_type = MemoryType::STATIC;
+        virtual_position = virtual_position - static_start;
+        return SUCCESS;
+    }
+    else if( stack_start <= virtual_position && virtual_position < stack_end)
+    {
+        out_mem_type = MemoryType::STACK_MEM;
+        virtual_position = virtual_position - stack_start;
+        return SUCCESS;
+    }
+    else if( heap_start <= virtual_position && virtual_position < heap_end)
+    {
+        out_mem_type = MemoryType::HEAP;
+        virtual_position = virtual_position - heap_start;
+        return SUCCESS;
+    }
+
+    stringstream ss;
+    ss << "Memory position: " << std::hex << virtual_position << " it's an invalid position, out of every kind of memory";
+    App::warning(ss.str());
+
+    return FAIL;
 }
 
 // -- < Tac Machine implementation > -----------------------------------
@@ -332,12 +502,23 @@ uint TacMachine::get_register(const std::string &reg_name, REGISTER_TYPE &out_va
     return value;
 }
 
-void TacMachine::run_tac_instruction(Tac tac)
+uint TacMachine::run_tac_instruction(const Tac &tac)
 {
-    App::warning("Not yet implemented: run_tac_instruction");
-    stringstream ss;
-    ss << "running instruction: " << tac.str();
-    App::trace(ss.str());
+
+    switch (tac.instr())
+    {
+    case Instr::METASTATICV:
+        return run_staticv(tac);
+        break;
+    
+    default:
+        stringstream ss;
+        ss << "running instruction: " << tac.str();
+        App::warning(ss.str());
+        break;
+    }
+
+    return FAIL;
 }
 
 void TacMachine::reset_instruction_count()
@@ -434,4 +615,25 @@ std::string TacMachine::show_status(Status status)
     assert(false && "Invalid status value");
 
     return "INVALID STATUS VALUE";
+}
+
+// -- < Instructions code > --------------------------------------
+// The folowing section contains implementation for every instruction
+uint TacMachine::run_staticv(const Tac& tac)
+{
+    // Sanity check
+    assert((tac.instr() == Instr::METASTATICV) && "Invalid instruction type");
+
+    const auto &args = tac.args();
+    assert(args.size() == 2 && "Invalid number of arguments in staticv instruction");
+
+    // Get name
+    auto const &name_val = args[0];
+    assert(name_val.is<std::string>() && "Invalid type for first argument of staticv, should be its name");
+    auto const &name = name_val.get<std::string>();
+
+    // Get Value
+    App::warning("Función WIP, aún tengo que hacer un manejador de memoria estática");
+
+    return SUCCESS;
 }
