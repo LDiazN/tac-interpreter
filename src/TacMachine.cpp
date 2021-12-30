@@ -87,7 +87,7 @@ uint VirtualHeap::write(uint virtual_position, const std::byte * bytes, size_t c
     // Sanity check:
     if (!is_valid(virtual_position, count))
     {
-        App::error("Trying to copy memory to invalid location.");
+        App::error("[segmentation fault] Trying to copy memory to invalid location.");
         return FAIL;
     }
 
@@ -105,14 +105,36 @@ uint VirtualHeap::write(uint virtual_position, const std::byte * bytes, size_t c
     return SUCCESS;
 }
 
-uint VirtualHeap::write_word(REGISTER_TYPE word, uint virtual_position)
-{   
+uint VirtualHeap::read(uint virtual_position, std::byte *bytes, size_t count)
+{
+    // check if the memory segment is a valid one
+    auto status = is_valid(virtual_position, count);
+    auto last_pos = virtual_position + count - 1;
+    if (status == FAIL)
+    {
+        stringstream ss;
+        ss << "[segmentation fault] Trying to read memory out of bounds of heap. ";
+        ss << "From: " << virtual_position << " to: " << last_pos;
+        ss << " (relative to heap)";
+        App::error(ss.str());
 
-    stringstream ss;
-    ss << "About to write a word to position: " << virtual_position;
-    App::trace(ss.str());
-    
-    return write(virtual_position, (std::byte *) &word, WORD_SIZE);
+        return FAIL;
+    }
+
+    // now that the memory segment is safe, we can read from it
+    auto it = m_memory_map.upper_bound(virtual_position);
+    assert(it != m_memory_map.begin() && "should be a valid block");
+
+    it--;
+    auto const& [start_pos, chunk] = *(it);
+    auto actual_index = virtual_position - start_pos;
+
+    // Read memory
+    memcpy(bytes, chunk.memory().get() + actual_index, count);
+
+    // Update read count 
+    m_read_counter ++;
+    return SUCCESS;
 }
 
 bool VirtualHeap::is_valid(uint virtual_position, size_t n_bytes) const
@@ -173,6 +195,8 @@ VirtualStack::VirtualStack()
     : m_stack_pointer(0)
     , m_push_count(0)
     , m_pop_count(0)
+    , m_read_count(0)
+    , m_write_count(0)
 {
     // Set stack memory to 0
     memset(m_memory, 0, sizeof(m_memory));
@@ -202,11 +226,11 @@ uint VirtualStack::push_memory(const std::byte *memory, std::size_t count)
 
     // copy memory to stack
     memcpy(m_memory + m_stack_pointer, memory, count);
-
+    m_write_count++;
     // update sp
     m_stack_pointer += count;
     m_push_count++;
-
+    
     return SUCCESS;
 }
 
@@ -215,9 +239,11 @@ uint VirtualStack::pop_memory(size_t count)
     if(count > m_stack_pointer)
     {
         std::stringstream ss;
-        ss  << "Trying to free " << count << " bytes of memory, which will cause "
-            << "a stack underflow exception";
+        ss  << "[stack underflow] "; 
+        ss  << "Trying to free " << count << " bytes of stack memory, which will cause, more than the actual stack pointer:  ";
+        ss  << m_stack_pointer << "(relative to the stack)"; 
 
+        App::error(ss.str());
         return FAIL;
     }
 
@@ -226,7 +252,7 @@ uint VirtualStack::pop_memory(size_t count)
     return SUCCESS;
 }
 
-uint VirtualStack::write(uint virtual_position, std::byte *bytes, size_t count)
+uint VirtualStack::write(uint virtual_position, const std::byte *bytes, size_t count)
 {
     auto last_pos = virtual_position + count - 1;
 
@@ -249,7 +275,36 @@ uint VirtualStack::write(uint virtual_position, std::byte *bytes, size_t count)
     }
 
     // Write memory 
-    memcpy(m_memory, bytes, count);
+    memcpy(m_memory + virtual_position, bytes, count);
+    m_write_count++;
+    return SUCCESS;
+}
+
+uint VirtualStack::read(uint virtual_position, std::byte *bytes, size_t count)
+{
+    auto last_pos = virtual_position + count - 1;
+
+    // check if the given position is not outside the stack
+    if(last_pos >= STACK_MEMORY_SIZE)
+    {
+        stringstream ss;
+        ss << "[segmentation fault] Trying to read from a memory address that will be out of the stack";
+        App::error(ss.str());
+        return FAIL;
+    }
+
+    // Check if the position is outside the current stack
+    if(last_pos >= m_stack_pointer)
+    {
+        stringstream ss;
+        ss << "Reading memory segment possibly out of the current active stack memory. ";
+        ss << "Starting from " << std::hex << virtual_position << " to " << std::hex << last_pos;
+        App::warning(ss.str());
+    }
+
+    // Read memory 
+    memcpy(bytes, m_memory + virtual_position, count);
+    m_read_count++;
     return SUCCESS;
 }
 
@@ -260,6 +315,8 @@ std::string VirtualStack::str(bool show_memory) const
     ss << "\t- Stack Pointer (SP): "    << std::dec << m_stack_pointer  << std::endl;
     ss << "\t- Stack push count: "      << std::dec << m_push_count     << std::endl;
     ss << "\t- Stack pop count: "       << std::dec << m_pop_count      << std::endl;
+    ss << "\t- Read Operations: "       << std::dec << m_read_count     << std::endl;
+    ss << "\t- Write Operations: "      << std::dec << m_write_count    << std::endl;
     
     if (show_memory)
     {
@@ -296,7 +353,7 @@ std::string MemoryManager::memory_type_to_str(MemoryType mem_type)
     }
 
     assert(false && "Invalid memory type");
-    return "<invalid memory type>"
+    return "<invalid memory type>";
 }
 
 uint MemoryManager::type_of(uint virtual_position, MemoryManager::MemoryType &out_mem_type)
@@ -305,23 +362,21 @@ uint MemoryManager::type_of(uint virtual_position, MemoryManager::MemoryType &ou
     return type_and_actual_pos_of(virtual_position, out_mem_type, p);
 }
 
-std::string MemoryManager::str(bool show_memory = false) const
+std::string MemoryManager::str(bool show_memory) const
 {
     std::stringstream ss;
 
-    ss << m_stack.str() << std::endl;
-    ss << m_heap.str() << std::endl;
+    ss << m_stack.str(show_memory) << std::endl;
+    ss << m_heap.str(show_memory) << std::endl;
 
     return ss.str();
 }
 
-uint MemoryManager::write_memory(std::byte *bytes, size_t count, uint virtual_address)
+uint MemoryManager::write(const std::byte *bytes, size_t count, uint virtual_address)
 {
     uint actual_addr;
     MemoryType type;
     auto is_valid = type_and_actual_pos_of(virtual_address, type, actual_addr);
-    
-
 
     // Check if this position is ok
     if (is_valid == FAIL)
@@ -381,31 +436,126 @@ uint MemoryManager::write_memory(std::byte *bytes, size_t count, uint virtual_ad
     return FAIL;
 }
 
+uint MemoryManager::read(std::byte *bytes, size_t count, uint virtual_address)
+{
+    uint actual_addr;
+    MemoryType type;
+    auto is_valid = type_and_actual_pos_of(virtual_address, type, actual_addr);
+
+    // Check if this position is ok
+    if (is_valid == FAIL)
+    {
+        stringstream ss;
+        ss << "[segmentation fault] Trying to read to invalid memory address: " << std::hex << virtual_address;
+        App::error(ss.str());
+        return FAIL;
+    }
+
+    // Check if direction in last position is valid and inside the same type of memory
+    uint last_pos_virtual = virtual_address + count - 1;
+    MemoryType last_addr_type;
+    auto last_is_valid = type_of(last_pos_virtual, last_addr_type);
+
+    if (last_is_valid == FAIL) // if position is not valid
+    {
+        stringstream ss;
+        ss << "[segmentation fault] Trying to read up to an invalid memory address: " << std::hex << last_pos_virtual;
+        ss << " starting from " << std::hex << virtual_address;
+        App::error(ss.str());
+        return FAIL;
+    }
+    else if(last_addr_type != type) // if valid but in another memory type
+    {
+        stringstream ss;
+        ss << "[segmentation fault] Trying to read up to a memory address that is valid, but in another type of memory: " << std::hex << last_pos_virtual;
+        ss << " starting from " << std::hex << virtual_address << ". Initial position is of type " << memory_type_to_str(type);
+        ss << " but last position is of type " << memory_type_to_str(last_addr_type);
+
+        App::error(ss.str());
+        return FAIL;
+    }
+
+    // Read from the right type of memory
+    switch (type)
+    {
+    case MemoryType::HEAP:
+        return m_heap.read(actual_addr, bytes, count);
+        break;
+    case MemoryType::STATIC:
+        App::warning("reading from static memory still WIP");
+        return SUCCESS;
+        break;
+    case MemoryType::STACK_MEM:
+        return m_stack.read(actual_addr, bytes, count);
+        break;
+    default:
+        break;
+    }
+
+    stringstream ss;
+    ss << "Unrecognized type of memory: " << static_cast<int>(type);
+    App::error(ss.str());
+    assert(false);
+    
+    return FAIL;
+}
+
+uint MemoryManager::set_stack_pointer(size_t new_sp)
+{
+    // Check that this is a valid Stack Pointer
+    if( new_sp < stack_start() || new_sp >= stack_end())
+    {
+        stringstream ss;
+        ss << "Error, memory address: " << std::hex << new_sp << " is not a valid stack address";
+        App::error(ss.str());
+        return FAIL;
+    }
+
+    m_stack.set_stack_pointer(to_stack(new_sp));
+    return SUCCESS;
+}
+
+uint MemoryManager::to_global(uint local_addr, MemoryManager::MemoryType type)
+{
+    switch (type)
+    {
+    case MemoryType::HEAP:
+        return local_addr + heap_start();
+        break;
+    case MemoryType::STACK_MEM:
+        return local_addr + stack_start();
+        break;
+    case MemoryType::STATIC:
+        assert(local_addr >= static_start() && local_addr < static_end());
+        return local_addr + static_start();
+        break;
+    default:
+        break;
+    }
+
+    assert(false && "Unrecognized type of memory");
+    return 0;
+}
+
 uint MemoryManager::type_and_actual_pos_of(uint virtual_position, MemoryManager::MemoryType &out_mem_type, uint &out_actual_pos)
 {
-    auto static_start = 0;
-    auto static_end = static_start + STATIC_MEMORY_SIZE;
-    auto stack_start = static_end;
-    auto stack_end = stack_start + STACK_MEMORY_SIZE;
-    auto heap_start = stack_end;
-    auto heap_end = heap_start + HEAP_MEMORY_SIZE;
-
-    if( static_start <= virtual_position && virtual_position < static_end)
+    
+    if( static_start() <= virtual_position && virtual_position < static_end())
     {
         out_mem_type = MemoryType::STATIC;
-        virtual_position = virtual_position - static_start;
+        out_actual_pos = virtual_position - static_start();
         return SUCCESS;
     }
-    else if( stack_start <= virtual_position && virtual_position < stack_end)
+    else if( stack_start() <= virtual_position && virtual_position < stack_end())
     {
         out_mem_type = MemoryType::STACK_MEM;
-        virtual_position = virtual_position - stack_start;
+        out_actual_pos = virtual_position - stack_start();
         return SUCCESS;
     }
-    else if( heap_start <= virtual_position && virtual_position < heap_end)
+    else if( heap_start() <= virtual_position && virtual_position < heap_end())
     {
         out_mem_type = MemoryType::HEAP;
-        virtual_position = virtual_position - heap_start;
+        out_actual_pos = virtual_position - heap_start();
         return SUCCESS;
     }
 
@@ -415,15 +565,13 @@ uint MemoryManager::type_and_actual_pos_of(uint virtual_position, MemoryManager:
 
     return FAIL;
 }
-
 // -- < Tac Machine implementation > -----------------------------------
 
 TacMachine::TacMachine(Program program)
     : m_program(program)
     , m_program_counter(0)
     , m_frame_pointer(0)
-    , m_heap()
-    , m_stack()
+    , m_memory()
     , m_status(Status::NOT_STARTED)
     , m_registers()
 {
@@ -466,7 +614,7 @@ void TacMachine::set_register(const std::string &reg_name, REGISTER_TYPE value)
     }
     else if ( reg_name == STACK)
     {
-        m_stack.set_stack_pointer(static_cast<size_t>(value));
+        m_memory.set_stack_pointer(static_cast<size_t>(value));
         return;
     }
 
@@ -483,7 +631,7 @@ uint TacMachine::get_register(const std::string &reg_name, REGISTER_TYPE &out_va
     }
     else if(reg_name == STACK)
     {
-        out_value = static_cast<REGISTER_TYPE>(m_stack.stack_pointer());
+        out_value = static_cast<REGISTER_TYPE>(m_memory.stack_pointer());
         return SUCCESS;
     }
 
@@ -583,8 +731,7 @@ std::string TacMachine::str(bool show_memory, bool show_labels, bool show_regist
         }
     }
 
-    ss << m_stack.str() << std::endl;
-    ss << m_heap.str()  << std::endl;
+    ss << m_memory.str()  << std::endl;
 
     return ss.str();
 }

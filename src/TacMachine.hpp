@@ -162,7 +162,27 @@ namespace TacRunner
              * @param virtual_position where to write the word 
              * @return uint status: 0 un success, 1 on failure
              */
-            uint write_word(REGISTER_TYPE word, uint virtual_position);
+            uint write_word(REGISTER_TYPE word, uint virtual_position) {return write(virtual_position, (std::byte *) &word, WORD_SIZE); } ;
+
+            
+            /**
+             * @brief Read 'count' bytes from 'virtual_position' to buffer 'bytes'
+             * 
+             * @param virtual_position where the memory will be read from
+             * @param bytes where the memory will be stored 
+             * @param count how many bytes to read
+             * @return uint success status, 0 un success, 1 on failure
+             */
+            uint read(uint virtual_position, std::byte *bytes, size_t count);
+        
+            /**
+             * @brief Read a word from the given 'virtual_position' into 'outword'
+             * 
+             * @param virtual_position where to read the word from
+             * @param out_word         where to write the word value
+             * @return uint success status, 0 un success, 1 on failure
+             */
+            inline uint read_word(uint virtual_position, REGISTER_TYPE &out_word) { return read(virtual_position, (std::byte *) &out_word, sizeof(out_word)); }
 
             /**
              * @brief Tells if a given position is a valid memory position
@@ -312,7 +332,7 @@ namespace TacRunner
          * @param count how many bytes to copy
          * @return uint success status, 0 on success, 1 on failure
          */
-        uint write(uint virtual_position, std::byte *bytes, size_t count);
+        uint write(uint virtual_position, const std::byte *bytes, size_t count);
 
         /**
          * @brief copy a word to the specified position in the stack
@@ -322,6 +342,25 @@ namespace TacRunner
          * @return uint success status, 0 on success, 1 on failure
          */
         inline uint write_word(uint virtual_position, REGISTER_TYPE word) {return write(virtual_position, (std::byte*) &word, sizeof(word)); }
+
+        /**
+         * @brief Read 'count' bytes from 'virtual_position' to "bytes" buffer
+         * 
+         * @param virtual_position where to read
+         * @param bytes where to write
+         * @param count how much to read
+         * @return uint success status, 0 on success, 1 on failure
+         */
+        uint read(uint virtual_position, std::byte *bytes, size_t count);
+
+        /**
+         * @brief Read a word from 'virtual_position' to 'out_word'
+         * 
+         * @param virtual_position where to read
+         * @param out_word where to write the word name
+         * @return uint success status, 0 on success, 1 on failure
+         */
+        inline uint read_word(uint virtual_position, REGISTER_TYPE &out_word) {return read(virtual_position, (std::byte*) &out_word, sizeof(out_word)); }
 
         /**
          * @brief Stack pointer, the next available position where to store data
@@ -384,6 +423,18 @@ namespace TacRunner
          * 
          */
         size_t m_pop_count;
+
+        /**
+         * @brief How many read operations were performed
+         * 
+         */
+        size_t m_read_count;
+
+        /**
+         * @brief How many write operations to stack
+         * 
+         */
+        size_t m_write_count;
     };
 
     class VirtualStaticMemory
@@ -443,7 +494,7 @@ namespace TacRunner
          * @param virtual_address address where the data will be copied into
          * @return uint sucess status, 0 on success, 1 on failure
          */
-        uint write_memory(std::byte *bytes, size_t count, uint virtual_address);
+        uint write(const std::byte *bytes, size_t count, uint virtual_address);
 
         /**
          * @brief Write a word into the given virtual address
@@ -452,7 +503,7 @@ namespace TacRunner
          * @param virtual_address address where to copy this word
          * @return uint sucess status, 0 on success, 1 on failure
          */
-        inline uint write_word(REGISTER_TYPE word, uint virtual_address) { return write_memory((std::byte *) &word, sizeof(word), virtual_address); }
+        inline uint write_word(REGISTER_TYPE word, uint virtual_address) { return write((std::byte *) &word, sizeof(word), virtual_address); }
 
         /**
          * @brief Read "count" bytes of memory from "virtual_address" to "bytes" buffer
@@ -462,7 +513,7 @@ namespace TacRunner
          * @param virtual_address where to look for that data
          * @return uint sucess status, 0 on success, 1 on failure
          */
-        uint read_memory(std::byte *bytes, size_t count, uint virtual_address) const;
+        uint read(std::byte *bytes, size_t count, uint virtual_address);
 
         /**
          * @brief Read a word from the specified virtual address
@@ -471,7 +522,17 @@ namespace TacRunner
          * @param virtual_address where to read the word from
          * @return uint success status, 0 on success, 1 on failure
          */
-        inline uint read_word(REGISTER_TYPE& out_word, uint virtual_address) const { return read_memory((std::byte *) &out_word, sizeof(out_word), virtual_address); }
+        inline uint read_word(REGISTER_TYPE& out_word, uint virtual_address) { return read((std::byte *) &out_word, sizeof(out_word), virtual_address); }
+
+        // The following functions will return information about the memory limits
+        // Every memory address of a given type TYPE is valid in the interval [TYPE_start, TYPE_end)
+        static inline size_t static_start() { return 0; }
+        static inline size_t static_end()   { return static_start() + STATIC_MEMORY_SIZE; }
+        static inline size_t stack_start()  { return static_end(); }
+        static inline size_t stack_end()    { return stack_start() + STACK_MEMORY_SIZE; }
+        static inline size_t heap_start()   { return stack_end(); }
+        static inline size_t heap_end()     { return heap_start() + HEAP_MEMORY_SIZE; }
+
 
         public: // Heap functions
         /**
@@ -480,7 +541,7 @@ namespace TacRunner
          * @param size how many bytes to store 
          * @return uint virtual address, a valid heap address
          */
-        uint malloc(size_t size);
+        uint malloc(size_t size) { auto x = m_heap.malloc(size); return x != 0 ? to_global(x, MemoryType::HEAP) : 0;  }
 
         /**
          * @brief Free the given virtual memory position, return 0 un success, 1 on failure. It should be 
@@ -490,7 +551,7 @@ namespace TacRunner
          *                         is not a one returned by malloc
          * @return uint success status, 0 on success, 1 on failure
          */
-        uint free(uint virtual_position);
+        uint free(uint virtual_position) { return m_heap.free(to_heap(virtual_position)); }
 
         /**
          * @brief Tells if a given memory segment specified by its start position
@@ -503,7 +564,7 @@ namespace TacRunner
          * @return true If this is a valid allocated position
          * @return false otherwise
          */
-        bool is_valid_heap_addr(uint virtual_position, size_t n_bytes = 1) const;
+        bool is_valid_heap_addr(uint virtual_position, size_t n_bytes = 1) const { return m_heap.is_valid(to_heap(virtual_position), n_bytes); };
 
         /**
          * @brief Get a const reference to the heap object 
@@ -545,7 +606,7 @@ namespace TacRunner
         /**
          * @brief Write a word into stack memory, at the top of the stack
          * 
-         * @return uint 
+         * @return uint success status, 0 un success, 1 on failure
          */
         inline uint pop_word() { return m_stack.pop_memory(WORD_SIZE); }
 
@@ -554,21 +615,15 @@ namespace TacRunner
          * 
          * @return size_t current stack pointer
          */
-        size_t stack_pointer() const;
-
-        /**
-         * @brief Stack pointer, the next available position where to store data
-         * 
-         * @return size_t current stack pointer
-         */
-        inline size_t stack_pointer() const;
+        inline size_t stack_pointer() const { return m_stack.stack_pointer() + stack_start(); }
 
         /**
          * @brief   Set the stack pointer value. Use with caution as this 
          *          is not checked for consistency
          * @param new_sp new stack pointer to check
+         * @return uint success status, 0 un success, 1 on failure
          */
-        inline void set_stack_pointer(size_t new_sp); 
+        inline uint set_stack_pointer(size_t new_sp); 
 
         /**
          * @brief How many stack push operations were performed
@@ -589,7 +644,15 @@ namespace TacRunner
         // WIP
 
         private:
-        
+
+        // The following functions will help you to convert from global memory to local memory
+        static inline uint to_stack(uint global_addr)  { return global_addr - stack_start(); }
+        static inline uint to_heap(uint global_addr)   { return global_addr - heap_start(); }
+        static inline uint to_static(uint global_addr) { return global_addr - static_start(); }
+
+        // Use this function to go from one type of memory to global memory
+        static uint to_global(uint local_addr, MemoryType type);
+
         /**
          * @brief Find the actual position of a memory address
          * 
@@ -686,7 +749,7 @@ namespace TacRunner
          * 
          * @return uint stack position
          */
-        inline uint stack_pointer() const { return m_stack.stack_pointer(); }
+        inline uint stack_pointer() const { return m_memory.stack_pointer(); }
 
         /**
          * @brief Current machine status
@@ -754,16 +817,10 @@ namespace TacRunner
         LabelMap m_label_map;
 
         /**
-         * @brief Heap memory
+         * @brief Memory management object
          * 
          */
-        VirtualHeap m_heap;
-
-        /**
-         * @brief Stack Memory
-         * 
-         */
-        VirtualStack m_stack;
+        MemoryManager m_memory;
 
         /**
          * @brief How many of which instructions were found
