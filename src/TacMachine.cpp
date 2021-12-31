@@ -816,6 +816,11 @@ uint TacMachine::run_tac_instruction(const Tac &tac)
     case Instr::METASTRING:
         return run_static_string(tac);
         break;
+    case Instr::METALABEL: // ignore
+        break;
+    case Instr::ASSIGNW:
+
+
     default:
         stringstream ss;
         ss << "running instruction not yet implemented: " << tac.str();
@@ -857,6 +862,20 @@ void TacMachine::set_up_label_map()
             m_label_map[name] = i;
         }
     }
+}
+
+uint TacMachine::get_var_value(const Variable &var, REGISTER_TYPE &out_value)
+{
+    REGISTER_TYPE reg_value;
+    auto status = get_register(var.name, reg_value);
+
+    // Check if getting value was successful
+    if (status == FAIL)
+        return FAIL;
+    
+                            // branchless if
+    out_value = reg_value + (var.is_access) * var.index;        
+    return SUCCESS;
 }
 
 std::string TacMachine::str(bool show_memory, bool show_labels, bool show_registers)
@@ -988,4 +1007,90 @@ uint TacMachine::run_static_string(const Tac& tac)
     auto mem_pos = m_memory.get_static_memory(string.size()+1);
 
     return m_memory.write((std::byte *) string.c_str(), string.size()+1, mem_pos);
+}
+
+uint TacMachine::run_assignw(const Tac &tac)
+{
+    assert(tac.instr() == Instr::ASSIGNW && "Invalid instruction type");
+    const auto &args = tac.args();
+    assert(args.size() == 2 && "Invalid number of arguments in @string instruction");
+
+    // get values
+    const auto &lvalue_arg = args[0];
+    const auto &rvalue_arg = args[1];
+
+    // check that both types of memory are variables
+    assert(lvalue_arg.is<Variable>() && "First argument of assignw should be Variable");
+
+    // Get actual values
+    auto const &lvalue = lvalue_arg.get<Variable>();
+    // Get value of lvalue
+    REGISTER_TYPE lvalue_addr;
+
+    auto status = get_var_value(lvalue, lvalue_addr);
+    if (status == FAIL)
+        return FAIL;
+
+
+    // Get value to assign to lvalue
+    REGISTER_TYPE actual_rvalue;
+    if (rvalue_arg.is<Variable>())
+    {
+        auto const &rvalue = rvalue_arg.get<Variable>();
+        // Get value of rvalue 
+        REGISTER_TYPE rvalue_addr;
+        status = get_var_value(rvalue, rvalue_addr);
+        if (status == FAIL)
+            return FAIL;
+
+        // Check for For Address Code
+        if(rvalue.is_access && lvalue.is_access)
+        {
+            stringstream ss;
+            ss << "Four Address Code detected in instruction: " << tac.str();
+            App::error(ss.str());
+
+            return FAIL;
+        }
+
+        if (rvalue.is_access) // We need to look up the value
+        {
+            status = m_memory.read_word(actual_rvalue, rvalue_addr);
+            if (status == FAIL)
+                return FAIL;
+        }
+        else
+            actual_rvalue = rvalue_addr; // It turns out that this was the actual rvalue
+    }
+    else if (rvalue_arg.is<int>())
+    {
+        actual_rvalue = (REGISTER_TYPE) rvalue_arg.get<int>();
+    }
+    else if (rvalue_arg.is<char>())
+    {
+        App::warning("Assign of char to word using assignw");
+        
+        actual_rvalue = (REGISTER_TYPE) rvalue_arg.get<char>();
+    }
+    else if (rvalue_arg.is<bool>())
+    {
+        App::warning("Assign of bool to word using assignw");
+        actual_rvalue = (REGISTER_TYPE) rvalue_arg.get<bool>();
+    }
+    else if (rvalue_arg.is<float>())
+    {
+        union {
+            float f;
+            uint bytes;
+        } u;
+        u.f = rvalue_arg.get<float>();
+        actual_rvalue = u.bytes;
+    }
+    else 
+        assert(false && "rvalue in assignw should not be of this type");
+
+
+    
+    // Set up value
+    return m_memory.write_word(actual_rvalue, lvalue_addr);
 }

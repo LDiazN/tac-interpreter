@@ -965,6 +965,14 @@ namespace TacRunner
          */
         void set_up_label_map();
 
+        /**
+         * @brief Get var's value: X == X, X[Y] == X + Y 
+         * 
+         * @param var variable object
+         * @return uint success status, 0 on success, 1 else
+         */
+        uint get_var_value(const Variable &var, REGISTER_TYPE &out_value);
+
         private: 
         /**
          * @brief Program beeing run 
@@ -1020,6 +1028,7 @@ namespace TacRunner
 
         uint run_staticv(const Tac &tac);
         uint run_static_string(const Tac &tac);
+        uint run_assignw(const Tac &tac);
     };
 }
 
