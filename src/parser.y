@@ -152,9 +152,9 @@ Data    : %empty {
                     $$ = instrs;
                  }
 
-D       : METASTATICV ID Constant NEWLINE   
+D       : METASTATICV ID INTEGER NEWLINE   
             {
-                TacRunner::Tac t($1, TacRunner::Value($2), $3);
+                TacRunner::Tac t($1, TacRunner::Value($2), TacRunner::Value($3));
                 $$ = t;
             }
         | METASTRING ID STRING NEWLINE

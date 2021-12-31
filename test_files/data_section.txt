@@ -1,7 +1,5 @@
 @staticv x 69
-@staticv y 42.0
-@staticv z 'c'
-@staticv w True
-@staticv v False
+@staticv y 42
+@staticv z 77
 @string my_str "la inmortalidad del cangrejo"
 @staticv _asd@123v 420

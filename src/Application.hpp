@@ -79,9 +79,9 @@ namespace TacRunner
             /**
              * @brief Run an application with the provided configuration, 
              *        return a status on finish. 0 for success, 1 for failure.
-             * @return int 
+             * @return int 0 for success, 1 for failure.
              */
-            int run();
+            uint run();
 
             /**
              * @brief Get the help message for the CLI
@@ -152,6 +152,14 @@ namespace TacRunner
              * 
              */
             void run_tac_code();
+
+            /**
+             * @brief Run a single tac instruction
+             * 
+             * @param tac Instruction to run
+             * @return uint success status, 0 on success, 1 on failure
+             */
+            uint run_tac_inst(Tac tac);
 
         private:
             Config m_config;

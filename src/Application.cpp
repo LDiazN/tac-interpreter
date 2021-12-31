@@ -31,7 +31,7 @@
 namespace TacRunner
 {
 
-    int App::run()
+    uint App::run()
     {
         // Show help if requested so
         if (m_config.has_action(Action::SHOW_HELP))
@@ -39,8 +39,10 @@ namespace TacRunner
         
         // Run a tac code
         if (m_config.has_action(Action::RUN_TAC_CODE))
+        {
             run_tac_code();
-
+        }
+        
         return SUCCESS;
     }
 
@@ -69,14 +71,14 @@ namespace TacRunner
         App::trace("Creating tac machine...");
         TacMachine machine(tac_code);
 
+        // Start rogram
         App::trace("Starting program...");
+        machine.run_tac_program();
         // vv TESTING AREA, DELETE LATER --------------------------------------------------------------------------------
 
 
 
-
         // ^^ TESTING AREA, DELETE LATER --------------------------------------------------------------------------------
-
         // Display summary 
         if (machine.status() == TacMachine::Status::ERROR)
             App::error("Program execution failed");
@@ -84,7 +86,7 @@ namespace TacRunner
             App::success("Program execution successful");
 
         App::trace("Resulting state summary: ");
-        cout << machine.str(false, false, true) << endl;
+        cout << machine.str(true, true, true) << endl;
     }
 
     std::string App::help_msg() const

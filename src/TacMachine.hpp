@@ -1019,10 +1019,7 @@ namespace TacRunner
         // returns its success status, 0 on success, 1 on failure
 
         uint run_staticv(const Tac &tac);
-
-        
-
-
+        uint run_static_string(const Tac &tac);
     };
 }
 
