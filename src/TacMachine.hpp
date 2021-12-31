@@ -981,6 +981,15 @@ namespace TacRunner
          */
         uint get_var_value(const Variable &var, REGISTER_TYPE &out_value);
 
+        /**
+         * @brief Get the value of a variable: X == X, X[Y] == *(X+Y)
+         * 
+         * @param var variable whose value you want to access
+         * @param out_value where to store variable's value
+         * @return uint success status
+         */
+        uint access_var_value(const Variable &var, REGISTER_TYPE &out_value);
+
         private: 
         /**
          * @brief Program beeing run 
@@ -1047,9 +1056,9 @@ namespace TacRunner
              */
             REGISTER_TYPE get_inmediate_from_value_w(const Value& val);
 
-            uint load_inmediate(const Variable& var, const Value& val); // x = 1
+            uint load_inmediate(const Variable& var, const Value& val);     // x = 1
             uint load(const Variable& var, const Variable& val);            // x = y[24];
-            uint store_inmediate(const Variable& var, const Value& val);// x[10] = 24;
+            uint store_inmediate(const Variable& var, const Value& val);    // x[10] = 24;
             uint store(const Variable& var, const Variable& val);           // x[10] = y
             uint move_mem(const Variable& var, const Variable& val);        // x[10] = y[24];
             uint move(const Variable& var, const Variable& val);            // x = y;

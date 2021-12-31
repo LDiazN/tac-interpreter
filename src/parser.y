@@ -269,7 +269,7 @@ T       : METALABEL ID
                     $$ = TacRunner::Tac($1, TacRunner::Value($2), TacRunner::Value($3), TacRunner::Value($4));
                 }
 
-        | FREE    LValue
+        | FREE  LValue
                 {
                     $$ = TacRunner::Tac($1, $2);
                 }

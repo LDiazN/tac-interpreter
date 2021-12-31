@@ -26,7 +26,7 @@ frac            (({dseq_opt}"."{dseq})|{dseq}".")
 exp             ([eE][+-]?{dseq})
 exp_opt         ({exp}?)
 
-integer         ([1-9][0-9]*)
+integer         (([1-9][0-9]*)|0)
 float           (({frac}{exp_opt})|({dseq}{exp}))
 
 id              ([a-zA-Z_@]+[a-zA-Z_@0-9]*) 

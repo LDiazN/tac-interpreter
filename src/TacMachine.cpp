@@ -111,9 +111,9 @@ uint VirtualHeap::write(uint virtual_position, const std::byte * bytes, size_t c
 uint VirtualHeap::read(uint virtual_position, std::byte *bytes, size_t count)
 {
     // check if the memory segment is a valid one
-    auto status = is_valid(virtual_position, count);
+    auto valid = is_valid(virtual_position, count);
     auto last_pos = virtual_position + count - 1;
-    if (status == FAIL)
+    if (!valid)
     {
         stringstream ss;
         ss << "[segmentation fault] Trying to read memory out of bounds of heap. ";
@@ -706,6 +706,9 @@ uint MemoryManager::type_and_actual_pos_of(uint virtual_position, MemoryManager:
         return SUCCESS;
     }
 
+    auto heap_start_addr = heap_start();
+    auto heap_end_addr = heap_end();
+
     stringstream ss;
     ss << "Memory position: 0x" << std::hex << virtual_position << " it's an invalid position, out of every kind of memory";
     App::warning(ss.str());
@@ -802,7 +805,8 @@ uint TacMachine::get_register(const std::string &reg_name, REGISTER_TYPE &out_va
 
     auto &[_, value] = *it;
 
-    return value;
+    out_value = value;
+    return SUCCESS;
 }
 
 uint TacMachine::run_tac_instruction(const Tac &tac)
@@ -822,6 +826,10 @@ uint TacMachine::run_tac_instruction(const Tac &tac)
     case Instr::ASSIGNW:
         return run_assignw(tac);
         break;
+    case Instr::MALLOC:
+        return run_malloc(tac);
+    case Instr::FREE:
+        return run_free(tac);
     default:
         stringstream ss;
         ss << "running instruction not yet implemented: " << tac.str();
@@ -878,6 +886,24 @@ uint TacMachine::get_var_value(const Variable &var, REGISTER_TYPE &out_value)
     out_value = reg_value + (var.is_access) * var.index;        
     return SUCCESS;
 }
+
+uint TacMachine::access_var_value(const Variable &var, REGISTER_TYPE &out_value)
+{
+    // Try to get var first
+    REGISTER_TYPE addr;
+    auto status = get_var_value(var, addr);
+
+    // finish if not ok
+    if (status == FAIL)
+        return status;
+
+    if (var.is_access)
+        // Try to access memory at that position
+        return m_memory.read_word(out_value, addr);
+    
+    out_value = addr;
+    return SUCCESS;
+}    
 
 std::string TacMachine::str(bool show_memory, bool show_labels, bool show_registers)
 {
@@ -1014,7 +1040,7 @@ uint TacMachine::run_assignw(const Tac& tac)
 {
     assert(tac.instr() == Instr::ASSIGNW && "Invalid instruction type");
     const auto &args = tac.args();
-    assert(args.size() == 2 && "Invalid number of arguments in @string instruction");
+    assert(args.size() == 2 && "Invalid number of arguments in assign instruction");
 
     // get values
     const auto &lvalue_arg = args[0];
@@ -1113,7 +1139,7 @@ uint TacMachine::load(const Variable& var, const Variable& val)
     if (status == FAIL)
     {
         stringstream ss;
-        ss << "Could not get address specified by " << val.str();
+        ss << "Could not get address specified by 0x" << std::hex << val.str();
         App::error(ss.str());
         return FAIL;
     }
@@ -1124,7 +1150,7 @@ uint TacMachine::load(const Variable& var, const Variable& val)
     if ( status == FAIL)
     {
         stringstream ss;
-        ss << "Could not read data in address " << rvalue_addr;
+        ss << "Could not read data in address 0x" << std::hex << rvalue_addr;
         App::error(ss.str());
         return FAIL;
     }
@@ -1241,4 +1267,61 @@ uint TacMachine::move(const Variable& var, const Variable& val)
 
     set_register(var.name, rvalue);
     return SUCCESS;
+}
+
+uint TacMachine::run_malloc(const Tac &tac)
+{
+    // Sanity check
+    assert(tac.instr() == Instr::MALLOC && "Invalid instruction type");
+    const auto &args = tac.args();
+    assert(args.size() == 2 && "Invalid number of arguments in malloc instruction");
+
+    // get values
+    const auto &lvalue_arg = args[0];
+    const auto &byte_count_arg = args[1];
+
+    // check that both types of memory are variables
+    assert(lvalue_arg.is<Variable>() && "First argument of malloc should be a variable where to store its value");
+    assert(byte_count_arg.is<int>() && "Second argument of malloc should be int");
+
+    auto byte_count = byte_count_arg.get<int>();
+    auto const& lvalue = lvalue_arg.get<Variable>();
+    
+    // lvalue should not be a memory access
+    assert(!lvalue.is_access);
+
+    // Try to allocate memmory
+    auto memory_addr = m_memory.malloc(byte_count);
+
+    // Update register
+    set_register(lvalue.name, memory_addr);
+    
+    return SUCCESS;
+}
+
+uint TacMachine::run_free(const Tac& tac)
+{
+    // Sanity check
+    // Sanity check
+    assert(tac.instr() == Instr::FREE && "Invalid instruction type");
+    const auto &args = tac.args();
+    assert(args.size() == 1 && "Invalid number of arguments in free instruction");
+
+    // Try to get variable where the memory addr is stored
+    const auto& var_arg = args[0];
+    assert(var_arg.is<Variable>());
+    auto const& var = var_arg.get<Variable>();
+
+    REGISTER_TYPE value;
+    auto status = access_var_value(var, value);
+
+    if(status == FAIL)
+    {
+        stringstream ss;
+        ss << "Could not free memory in variable: " << var.str();
+        App::error(ss.str());
+        return FAIL;
+    }
+    
+    return m_memory.free(value);
 }

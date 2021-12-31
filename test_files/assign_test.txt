@@ -1,3 +1,10 @@
 assignw x 4
 assignw y 4.0
 assignw b 'c'
+malloc w 20
+assignw w[0] 1
+assignw w[4] 1
+assignw z w[0]
+assignw z w[8]
+assignw x z
+assignw w[0] w[4]
