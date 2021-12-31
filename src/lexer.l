@@ -33,8 +33,11 @@ id              ([a-zA-Z_@]+[a-zA-Z_@0-9]*)
 ascii_char      ([\x00-\x7F])
 string          ((\"{ascii_char}*\"))
 
+single_line_comment #[^\n\r]+?(?:\*\)|[\n\r])
+
 %%
 
+{single_line_comment}         { ; }
 "@staticv"  {
                 return TacRunner::Parser::make_METASTATICV(TacRunner::Instr::METASTATICV);
             }
