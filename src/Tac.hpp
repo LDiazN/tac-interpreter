@@ -74,6 +74,9 @@ namespace TacRunner {
         std::string name;
         int index;
         bool is_access;
+
+        public:
+        std::string str() const;
     };
 
     /**

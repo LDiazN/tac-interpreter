@@ -943,6 +943,14 @@ namespace TacRunner
 
         static std::string show_status(Status status);
 
+        /**
+         * @brief Return the current program position
+         * 
+         * @return const Tac& reference to current instruction
+         */
+        inline const Tac& current_instruction() const 
+        { auto pc = program_counter(); return m_program[pc < m_program.size() ? pc : pc - 1]; }
+
         private:
         /**
          * @brief Run a single tac instruction. Successful execution will increase the program counter
@@ -1029,6 +1037,24 @@ namespace TacRunner
         uint run_staticv(const Tac &tac);
         uint run_static_string(const Tac &tac);
         uint run_assignw(const Tac &tac);
+        //  Assign functions
+
+            /**
+             * @brief Get the value of a val object as a word
+             * 
+             * @param val value to convert into inmediate
+             * @return REGISTER_TYPE Resulting word
+             */
+            REGISTER_TYPE get_inmediate_from_value_w(const Value& val);
+
+            uint load_inmediate(const Variable& var, const Value& val); // x = 1
+            uint load(const Variable& var, const Variable& val);            // x = y[24];
+            uint store_inmediate(const Variable& var, const Value& val);// x[10] = 24;
+            uint store(const Variable& var, const Variable& val);           // x[10] = y
+            uint move_mem(const Variable& var, const Variable& val);        // x[10] = y[24];
+            uint move(const Variable& var, const Variable& val);            // x = y;
+        uint run_malloc(const Tac &tac);
+        uint run_free(const Tac&tac);
     };
 }
 

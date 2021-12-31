@@ -133,6 +133,16 @@ std::string TacRunner::instr_to_str(Instr instr)
     return "";
 }
 
+std::string Variable::str() const
+{
+    std::stringstream ss;
+    ss << name;
+    if (is_access)
+        ss << "[" << index << "]";
+    
+    return ss.str();
+}
+
 std::string Value::str() const
 {
     // String where to store result

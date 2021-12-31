@@ -817,10 +817,11 @@ uint TacMachine::run_tac_instruction(const Tac &tac)
         return run_static_string(tac);
         break;
     case Instr::METALABEL: // ignore
+        return SUCCESS;
         break;
     case Instr::ASSIGNW:
-
-
+        return run_assignw(tac);
+        break;
     default:
         stringstream ss;
         ss << "running instruction not yet implemented: " << tac.str();
@@ -1009,7 +1010,7 @@ uint TacMachine::run_static_string(const Tac& tac)
     return m_memory.write((std::byte *) string.c_str(), string.size()+1, mem_pos);
 }
 
-uint TacMachine::run_assignw(const Tac &tac)
+uint TacMachine::run_assignw(const Tac& tac)
 {
     assert(tac.instr() == Instr::ASSIGNW && "Invalid instruction type");
     const auto &args = tac.args();
@@ -1021,76 +1022,223 @@ uint TacMachine::run_assignw(const Tac &tac)
 
     // check that both types of memory are variables
     assert(lvalue_arg.is<Variable>() && "First argument of assignw should be Variable");
+    assert(
+            (
+                rvalue_arg.is<Variable>()   || 
+                rvalue_arg.is<char>()       || 
+                rvalue_arg.is<int>()        || 
+                rvalue_arg.is<float>()
+            ) && 
+            "First argument of assignw should be Variable"
+        );
 
-    // Get actual values
-    auto const &lvalue = lvalue_arg.get<Variable>();
-    // Get value of lvalue
-    REGISTER_TYPE lvalue_addr;
-
-    auto status = get_var_value(lvalue, lvalue_addr);
-    if (status == FAIL)
-        return FAIL;
-
-
-    // Get value to assign to lvalue
-    REGISTER_TYPE actual_rvalue;
+    const Variable& lvalue = lvalue_arg.get<Variable>();
     if (rvalue_arg.is<Variable>())
     {
-        auto const &rvalue = rvalue_arg.get<Variable>();
-        // Get value of rvalue 
-        REGISTER_TYPE rvalue_addr;
-        status = get_var_value(rvalue, rvalue_addr);
-        if (status == FAIL)
-            return FAIL;
+        const Variable& rvalue = rvalue_arg.get<Variable>();
 
-        // Check for For Address Code
-        if(rvalue.is_access && lvalue.is_access)
-        {
-            stringstream ss;
-            ss << "Four Address Code detected in instruction: " << tac.str();
-            App::error(ss.str());
-
-            return FAIL;
-        }
-
-        if (rvalue.is_access) // We need to look up the value
-        {
-            status = m_memory.read_word(actual_rvalue, rvalue_addr);
-            if (status == FAIL)
-                return FAIL;
-        }
-        else
-            actual_rvalue = rvalue_addr; // It turns out that this was the actual rvalue
+        if (lvalue.is_access && rvalue.is_access)
+            return move_mem(lvalue, rvalue);
+        else if(lvalue.is_access)
+            return store(lvalue, rvalue);
+        else if(rvalue.is_access)
+            return load(lvalue, rvalue);
+        else 
+            return move(lvalue, rvalue);
     }
-    else if (rvalue_arg.is<int>())
+    else if (!lvalue_arg.is<std::string>())
     {
-        actual_rvalue = (REGISTER_TYPE) rvalue_arg.get<int>();
+        if (lvalue.is_access)
+            return store_inmediate(lvalue, rvalue_arg);
+        else 
+            return load_inmediate(lvalue, rvalue_arg);
     }
-    else if (rvalue_arg.is<char>())
+
+    assert(false &&& "Invalid type for rvalue in assignw");
+    return FAIL;
+}
+
+REGISTER_TYPE TacMachine::get_inmediate_from_value_w(const Value& val)
+{
+    assert(!val.is<std::string>() && !val.is<Variable>());
+
+    REGISTER_TYPE actual_value;
+
+    if (val.is<int>())
+    {
+        actual_value = (REGISTER_TYPE) val.get<int>();
+    }
+    else if (val.is<char>())
     {
         App::warning("Assign of char to word using assignw");
-        
-        actual_rvalue = (REGISTER_TYPE) rvalue_arg.get<char>();
+        actual_value = (REGISTER_TYPE) val.get<char>();
     }
-    else if (rvalue_arg.is<bool>())
+    else if (val.is<bool>())
     {
         App::warning("Assign of bool to word using assignw");
-        actual_rvalue = (REGISTER_TYPE) rvalue_arg.get<bool>();
+        actual_value = (REGISTER_TYPE) val.get<bool>();
     }
-    else if (rvalue_arg.is<float>())
+    else if (val.is<float>())
     {
+        // Use this union to convert float into word of 4 bytes
         union {
             float f;
-            uint bytes;
+            REGISTER_TYPE bytes;
         } u;
-        u.f = rvalue_arg.get<float>();
-        actual_rvalue = u.bytes;
+        u.f = val.get<float>();
+        actual_value = u.bytes;
     }
-    else 
-        assert(false && "rvalue in assignw should not be of this type");
 
+    return actual_value;
+}
 
+uint TacMachine::load_inmediate(const Variable& var, const Value& val)
+{
+    // Sanity check
+    assert(!var.is_access && !val.is<std::string>() && !val.is<Variable>());
+
+    set_register(var.name, get_inmediate_from_value_w(val));
     
-    // Set up value
-    return m_memory.write_word(actual_rvalue, lvalue_addr);
+    return SUCCESS;
+}
+
+uint TacMachine::load(const Variable& var, const Variable& val)
+{
+    // Sanity check
+    assert(!var.is_access && val.is_access);
+
+    // Try to get addr of rvalue
+    REGISTER_TYPE rvalue_addr;
+    auto status = get_var_value(val, rvalue_addr);
+    if (status == FAIL)
+    {
+        stringstream ss;
+        ss << "Could not get address specified by " << val.str();
+        App::error(ss.str());
+        return FAIL;
+    }
+    
+    // Try to get value from memory
+    REGISTER_TYPE actual_rvalue;
+    status = m_memory.read_word(actual_rvalue, rvalue_addr);
+    if ( status == FAIL)
+    {
+        stringstream ss;
+        ss << "Could not read data in address " << rvalue_addr;
+        App::error(ss.str());
+        return FAIL;
+    }
+
+    // Set register to specified value
+    set_register(var.name, actual_rvalue);
+    return SUCCESS;
+}
+
+uint TacMachine::store_inmediate(const Variable& var, const Value& val)
+{
+    // Sanity check
+    assert(var.is_access && !val.is<std::string>() && !val.is<Variable>());
+
+    // Try to get addr of lvalue
+    REGISTER_TYPE lvalue_addr;
+    auto status = get_var_value(var, lvalue_addr);
+    if (status == FAIL)
+    {
+        stringstream ss;
+        ss << "Could not get address specified by " << var.str();
+        App::error(ss.str());
+        return FAIL;
+    }
+
+    // Get value from inmediate
+    auto actual_val = get_inmediate_from_value_w(val);
+
+    // Write value to memory
+    status = m_memory.write_word(actual_val, lvalue_addr);
+    if (status == FAIL)
+    {
+        stringstream ss;
+        ss << "Could not write value " << val.str();
+        ss << " to address " << lvalue_addr << " specified by ";
+        ss << var.str();
+        App::error(ss.str());
+
+        return FAIL;
+    }
+
+    return SUCCESS;
+}
+
+uint TacMachine::store(const Variable& var, const Variable& val)
+{
+    // sanity check
+    assert(var.is_access && !val.is_access);
+
+    // Try to get addr of lvalue
+    REGISTER_TYPE lvalue_addr;
+    auto status = get_var_value(var, lvalue_addr);
+    if (status == FAIL)
+    {
+        stringstream ss;
+        ss << "Could not get address specified by " << var.str();
+        App::error(ss.str());
+        return FAIL;
+    }
+
+    // Value of val is its actual value
+    REGISTER_TYPE actual_val;
+    status = get_var_value(val, actual_val);
+    if( status == FAIL)
+    {
+        stringstream ss;
+        ss << "Could not get value of " << val.str();
+        App::error(ss.str());
+
+        return FAIL;
+    }
+
+    // Write word to memory
+    status = m_memory.write_word(actual_val, lvalue_addr);
+    if (status == FAIL)
+    {
+        stringstream ss;
+        ss << "Could not write data specified by " << val.str();
+        ss << " to memory address " << lvalue_addr << " specified by ";
+        ss << var.str();
+
+        App::error(ss.str());
+
+        return FAIL;
+    }
+
+    return SUCCESS;
+}
+
+uint TacMachine::move_mem(const Variable& var, const Variable& val)
+{
+    stringstream ss;
+    ss << "Four Address Code detected in instruction: " << current_instruction().str();
+    App::error(ss.str());
+
+    return FAIL;
+}
+
+uint TacMachine::move(const Variable& var, const Variable& val)
+{
+    // sanity check
+    assert(!var.is_access && !val.is_access);
+
+    // Try to get addr of lvalue
+    REGISTER_TYPE rvalue;
+    auto status = get_var_value(val, rvalue);
+    if (status == FAIL)
+    {
+        stringstream ss;
+        ss << "Could not get address specified by " << val.str();
+        App::error(ss.str());
+        return FAIL;
+    }
+
+    set_register(var.name, rvalue);
+    return SUCCESS;
 }
