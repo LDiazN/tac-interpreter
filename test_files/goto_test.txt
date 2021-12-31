@@ -1,0 +1,3 @@
+goto end
+assignw x 99
+@label end

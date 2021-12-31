@@ -7,4 +7,5 @@ assignw w[4] 1
 assignw z w[0]
 assignw z w[8]
 assignw x z
-assignw w[0] w[4]
+# assignw w[0] w[4] # will raise error
+
