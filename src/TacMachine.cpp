@@ -706,9 +706,6 @@ uint MemoryManager::type_and_actual_pos_of(uint virtual_position, MemoryManager:
         return SUCCESS;
     }
 
-    auto heap_start_addr = heap_start();
-    auto heap_end_addr = heap_end();
-
     stringstream ss;
     ss << "Memory position: 0x" << std::hex << virtual_position << " it's an invalid position, out of every kind of memory";
     App::warning(ss.str());
