@@ -806,6 +806,27 @@ uint TacMachine::get_register(const std::string &reg_name, REGISTER_TYPE &out_va
     return SUCCESS;
 }
 
+uint TacMachine::goto_label(std::string label_name)
+{
+    auto it = m_label_map.find(label_name);
+
+    // If could not find it 
+    if (it == m_label_map.end())
+    {
+        stringstream ss;
+        ss << "Can't jump to label '" << label_name << "', it does not exists";
+        App::error(ss.str());
+
+        return FAIL;
+    }
+
+    auto const&[_, line_num] = *it;
+
+    // Update program counter
+    m_program_counter = line_num;
+    return SUCCESS;
+}
+
 uint TacMachine::run_tac_instruction(const Tac &tac)
 {
 
@@ -822,6 +843,9 @@ uint TacMachine::run_tac_instruction(const Tac &tac)
         break;
     case Instr::ASSIGNW:
         return run_assignw(tac);
+        break;
+    case Instr::GOTO:
+        return run_goto(tac);
         break;
     case Instr::MALLOC:
         return run_malloc(tac);
@@ -917,8 +941,11 @@ std::string TacMachine::str(bool show_memory, bool show_labels, bool show_regist
     if (show_registers)
     {
         ss << "- Registers: " << std::endl;
-        for(auto &[name, value] : m_registers)
-            ss << "\t- " << name << " = 0x" << std::hex << value << std::endl;
+        if (m_registers.empty())
+            ss << "\t<No registers to show>";
+        else
+            for(auto &[name, value] : m_registers)
+                ss << "\t- " << name << " = 0x" << std::hex << value << std::endl;
         ss << std::endl;
     }
 
@@ -1264,6 +1291,19 @@ uint TacMachine::move(const Variable& var, const Variable& val)
 
     set_register(var.name, rvalue);
     return SUCCESS;
+}
+
+uint TacMachine::run_goto(const Tac& tac)
+{
+    assert(tac.instr() == Instr::GOTO && "Invalid instruction type");
+    const auto &args = tac.args();
+    assert(args.size() == 1 && "Invalid number of arguments in goto instruction");
+    // get values
+    const auto &label_arg = args[0];
+    assert(label_arg.is<std::string>() && "First argument of goto should be a variable where to store its value");
+    auto const& label = label_arg.get<std::string>();
+    
+    return goto_label(label);
 }
 
 uint TacMachine::run_malloc(const Tac &tac)

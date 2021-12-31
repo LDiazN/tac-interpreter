@@ -905,6 +905,15 @@ namespace TacRunner
         uint get_register(const std::string &reg_name, REGISTER_TYPE &out_value);
 
         /**
+         * @brief Make the machine go to the specified label and continue
+         *        its execution from there
+         * 
+         * @param label_name name of label
+         * @return uint success status, 0 on success, 1 on failure
+         */
+        uint goto_label(std::string label_name);
+
+        /**
          * @brief Current program position, next instruction to execute, not yet executed
          * 
          * @return uint current program position
@@ -1062,6 +1071,7 @@ namespace TacRunner
             uint store(const Variable& var, const Variable& val);           // x[10] = y
             uint move_mem(const Variable& var, const Variable& val);        // x[10] = y[24];
             uint move(const Variable& var, const Variable& val);            // x = y;
+        uint run_goto(const Tac& tac);
         uint run_malloc(const Tac &tac);
         uint run_free(const Tac&tac);
     };
