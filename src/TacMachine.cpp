@@ -647,6 +647,19 @@ uint MemoryManager::read(std::byte *bytes, size_t count, uint virtual_address)
     return FAIL;
 }
 
+uint MemoryManager::move(uint src, uint dest, size_t count)
+{
+    // a byte buffer to perform the move operation
+    std::byte * buffer = new std::byte[count];
+
+    if (read(buffer, count, src) == FAIL)
+        return FAIL;
+    else
+        return write(buffer, count, dest);
+    
+    delete buffer;
+}
+
 uint MemoryManager::set_stack_pointer(size_t new_sp)
 {
     // Check that this is a valid Stack Pointer
@@ -847,10 +860,17 @@ uint TacMachine::run_tac_instruction(const Tac &tac)
     case Instr::GOTO:
         return run_goto(tac);
         break;
+    case Instr::GOIF:
+        return run_goif(tac);
+        break;
     case Instr::MALLOC:
         return run_malloc(tac);
+    case Instr::MEMCPY:
+        return run_memcpy(tac);
     case Instr::FREE:
         return run_free(tac);
+    case Instr::EXIT:
+        return run_exit(tac);
     default:
         stringstream ss;
         ss << "running instruction not yet implemented: " << tac.str();
@@ -932,7 +952,7 @@ std::string TacMachine::str(bool show_memory, bool show_labels, bool show_regist
     ss << "-- << TAC MACHINE >> ----------------------------------------" << std::endl;
     ss << "- Program Counter (PC): " << m_program_counter << std::endl;
     ss << "- Frame Pointer (FP): " << m_frame_pointer << std::endl;
-    ss << "- Current Instruction: " << \
+    ss << "- Current Instruction: " << 
         ( m_program_counter < m_program.size() ? m_program[m_program_counter].str() : "<Program Finished>")
         << std::endl;
     ss << "- Program Status: " << show_status(m_status) << std::endl;
@@ -1300,10 +1320,42 @@ uint TacMachine::run_goto(const Tac& tac)
     assert(args.size() == 1 && "Invalid number of arguments in goto instruction");
     // get values
     const auto &label_arg = args[0];
-    assert(label_arg.is<std::string>() && "First argument of goto should be a variable where to store its value");
+    assert(label_arg.is<std::string>() && "First argument of goto should be a label where to jump");
     auto const& label = label_arg.get<std::string>();
     
     return goto_label(label);
+}
+
+uint TacMachine::run_goif(const Tac& tac, bool is_negated)
+{
+    assert(tac.instr() == Instr::GOIF && "Invalid instruction type");
+    const auto &args = tac.args();
+    assert(args.size() == 2 && "Invalid number of arguments in goif instruction");
+
+    // get args
+    const auto& label_arg = args[0];
+    const auto& value_arg = args[1];
+
+    assert(label_arg.is<std::string>() && "First argument of goif should be a label where to jump");
+    assert(!value_arg.is<std::string>());
+
+    // get args values
+    const auto& label = label_arg.get<std::string>();
+    REGISTER_TYPE value;
+
+    if(value_arg.is<Variable>())
+    {
+        const auto& var = value_arg.get<Variable>();
+        if(access_var_value(var, value) == FAIL)
+            return FAIL;
+    }
+    else
+        value = get_inmediate_from_value_w(value_arg);
+
+    if((value && !is_negated) || (!value && is_negated))
+        return goto_label(label);
+
+    return SUCCESS;
 }
 
 uint TacMachine::run_malloc(const Tac &tac)
@@ -1336,9 +1388,54 @@ uint TacMachine::run_malloc(const Tac &tac)
     return SUCCESS;
 }
 
-uint TacMachine::run_free(const Tac& tac)
+uint TacMachine::run_memcpy(const Tac& tac)
 {
     // Sanity check
+    assert(tac.instr() == Instr::MEMCPY && "Invalid instruction type");
+    const auto &args = tac.args();
+    assert(args.size() == 3 && "Invalid number of arguments in memcpy instruction");
+
+    // memcpy dest src n
+    // Try to get variable where the memory addr is stored
+    const auto& dest_var_arg = args[0];
+    const auto& src_var_arg= args[1];
+    const auto& n_bytes_arg= args[2];
+
+    // sanity check
+    assert(dest_var_arg.is<Variable>());
+    assert(src_var_arg.is<Variable>());
+    assert(n_bytes_arg.is<int>());
+
+    // get actual values
+    const auto& dest_var = dest_var_arg.get<Variable>();
+    const auto& src_var  = src_var_arg.get<Variable>();
+    const auto& n_bytes  = n_bytes_arg.get<int>();
+
+    // Try to write n bytes from src to dest
+    REGISTER_TYPE dest;
+    if (access_var_value(dest_var, dest) == FAIL)
+        return FAIL;
+
+    REGISTER_TYPE src;
+    if (access_var_value(src_var, src) == FAIL)
+        return FAIL;
+
+    // try to move memory 
+    if( m_memory.move(src, dest, n_bytes) == FAIL)
+    {
+        stringstream ss;
+        ss << "Could not move " << n_bytes << "from address 0x" << std::hex << src;
+        ss << " to address " << std::hex << dest;
+        App::error(ss.str());
+
+        return FAIL;
+    }
+
+    return SUCCESS;
+}
+
+uint TacMachine::run_free(const Tac& tac)
+{
     // Sanity check
     assert(tac.instr() == Instr::FREE && "Invalid instruction type");
     const auto &args = tac.args();
@@ -1361,4 +1458,20 @@ uint TacMachine::run_free(const Tac& tac)
     }
     
     return m_memory.free(value);
+}
+
+uint TacMachine::run_exit(const Tac& tac)
+{
+    assert(tac.instr() == Instr::EXIT && "Invalid instruction type");
+    const auto &args = tac.args();
+    assert(args.size() == 1 && "Invalid number of arguments in exit instruction");
+
+    // Try to get variable where the memory addr is stored
+    const auto& var_arg = args[0];
+    assert(var_arg.is<int>());
+    const auto exit_code = var_arg.get<int>();
+    m_exit_status_code = exit_code;
+    m_status = Status::FINISHED;
+
+    return SUCCESS;
 }

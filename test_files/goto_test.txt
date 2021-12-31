@@ -1,3 +1,14 @@
+goif l1 1
+assignw dont_wanna_live_1 1
+@label l1
+goif end 0
+assignw z 1
+goif l2 z
+assignw dont_wanna_live_2 1
+@label l2
+goif l3 0
+assignw wanna_live_1 1
+@label l3
 goto end
 assignw x 99
 @label end

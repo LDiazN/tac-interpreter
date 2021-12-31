@@ -1,0 +1,5 @@
+malloc y 20
+assignw y[0] 2147483647
+assignw y[4] 2147483647
+malloc x 20
+memcpy x y 8

@@ -675,6 +675,16 @@ namespace TacRunner
          */
         inline uint read_word(REGISTER_TYPE& out_word, uint virtual_address) { return read((std::byte *) &out_word, sizeof(out_word), virtual_address); }
 
+        /**
+         * @brief Move 'count' bytes from 'src' to 'dest' 
+         * 
+         * @param src src direction, in global address
+         * @param dest destination direction, in global address
+         * @param count how many bytes to copy 
+         * @return uint success status, 0 on success, 1 on failure
+         */
+        uint move(uint src, uint dest, size_t count);
+
         // The following functions will return information about the memory limits
         // Every memory address of a given type TYPE is valid in the interval [TYPE_start, TYPE_end)
         static inline size_t static_start() { return 0; }
@@ -684,6 +694,7 @@ namespace TacRunner
         static inline size_t heap_start()   { return stack_end(); }
         static inline size_t heap_end()     { return heap_start() + HEAP_MEMORY_SIZE; }
 
+        
 
         public: // Heap functions
         /**
@@ -1048,6 +1059,12 @@ namespace TacRunner
          */
         Registers m_registers;
 
+        /**
+         * @brief Status code on exit of the program
+         * 
+         */
+        REGISTER_TYPE m_exit_status_code;
+
         private:
         // The following section contains functions for every instruction, every function
         // returns its success status, 0 on success, 1 on failure
@@ -1072,8 +1089,11 @@ namespace TacRunner
             uint move_mem(const Variable& var, const Variable& val);        // x[10] = y[24];
             uint move(const Variable& var, const Variable& val);            // x = y;
         uint run_goto(const Tac& tac);
-        uint run_malloc(const Tac &tac);
+        uint run_goif(const Tac& tac, bool is_negated = false);
+        uint run_malloc(const Tac& tac);
+        uint run_memcpy(const Tac& tac);
         uint run_free(const Tac&tac);
+        uint run_exit(const Tac& tac);
     };
 }
 
