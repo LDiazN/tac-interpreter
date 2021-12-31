@@ -1,0 +1,2 @@
+exit 0
+assignw x 1
