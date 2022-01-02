@@ -945,8 +945,9 @@ uint TacMachine::run_tac_instruction(const Tac &tac)
     case Instr::MOD:
         return run_bin_op(tac, "mod");
     case Instr::MINUS:
-        App::warning("Minus operation not yet implemented");
-        return SUCCESS;
+        return run_unary_op(tac);
+    case Instr::NEG:
+        return run_unary_op(tac);
     case Instr::EQ:
         return run_bin_op(tac, "eq", false);
     case Instr::NEQ:
@@ -1685,6 +1686,51 @@ uint TacMachine::divf(uint l_val, uint r_val, uint& out_result)
     
     out_result =  float_to_reg(reg_to_float(l_val) / reg_to_float(r_val));
     return SUCCESS;
+}
+
+uint TacMachine::run_unary_op(const Tac& tac)
+{
+    const auto &args = tac.args();
+    assert(args.size() == 2 && "Invalid number of arguments in unary operator instruction");
+
+    // get value
+    const auto &lvalue_arg = args[0];
+    const auto &value_arg = args[1];
+
+    // Sanity check
+    assert(lvalue_arg.is<Variable>());
+    assert(!value_arg.is<std::string>());
+
+    const auto& var = lvalue_arg.get<Variable>();
+
+    // sanity check
+    assert(!var.is_access);
+
+    // get value to negate
+    REGISTER_TYPE reg;
+    if(actual_value(value_arg, reg) == FAIL)
+    {
+        stringstream ss;
+        ss << "Could not get actual value of '" << value_arg.str() << "' to perform neg operation";
+        App::error(ss.str());
+
+        return FAIL;
+    }
+
+    // Perform operation 
+    if (tac.instr() == Instr::NEG)
+        reg = ~reg;
+    else if (tac.instr() == Instr::MINUS)
+    {
+        assert(var.name.size() > 0);
+        if (var.name[0] == 'f')
+            reg = float_to_reg(-reg_to_float(reg));
+        else 
+            reg = (REGISTER_TYPE) -((int) reg);
+    }
+    
+    set_register(var.name, reg);
+    return SUCCESS;    
 }
 
 uint TacMachine::run_goto(const Tac& tac)

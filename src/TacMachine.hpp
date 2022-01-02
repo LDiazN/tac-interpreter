@@ -1194,7 +1194,7 @@ namespace TacRunner
                 { out_result = reg_to_float(l_val) > reg_to_float(r_val); return SUCCESS; }
             static uint geqf(uint l_val, uint r_val, uint& out_result)
                 { out_result = reg_to_float(l_val) >= reg_to_float(r_val); return SUCCESS; }
-
+        uint run_unary_op(const Tac& tac);
         uint run_goto(const Tac& tac);
         uint run_goif(const Tac& tac, bool is_negated = false);
         uint run_malloc(const Tac& tac);

@@ -76,6 +76,9 @@ single_line_comment #[^\n\r]+?(?:\*\)|[\n\r])
 "minus"     {
                 return TacRunner::Parser::make_MINUS(TacRunner::Instr::MINUS);
             }
+"neg"       {
+                return TacRunner::Parser::make_NEG(TacRunner::Instr::NEG);
+            }
 "eq"        {
                 return TacRunner::Parser::make_EQ(TacRunner::Instr::EQ);
             }

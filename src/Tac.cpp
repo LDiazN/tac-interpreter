@@ -47,6 +47,9 @@ std::string TacRunner::instr_to_str(Instr instr)
     case Instr::MINUS:
         return "minus";
         break;
+    case Instr::NEG:
+        return "neg";
+        break;
     case Instr::EQ:
         return "eq";
         break;

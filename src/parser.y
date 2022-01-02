@@ -78,6 +78,7 @@
 %token <TacRunner::Instr> DIV    "div";
 %token <TacRunner::Instr> MOD    "mod";
 %token <TacRunner::Instr> MINUS  "minus";
+%token <TacRunner::Instr> NEG    "neg";
 %token <TacRunner::Instr> EQ     "eq";
 %token <TacRunner::Instr> NEQ    "neq";
 %token <TacRunner::Instr> LT     "lt";
@@ -221,6 +222,10 @@ T       : METALABEL ID
                     $$ = TacRunner::Tac($1, TacRunner::Value($2), $3, $4);
                 }
         | MINUS   Variable Value 
+                {
+                    $$ = TacRunner::Tac($1, TacRunner::Value($2), $3);
+                }
+        | NEG Variable Value
                 {
                     $$ = TacRunner::Tac($1, TacRunner::Value($2), $3);
                 }

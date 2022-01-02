@@ -28,6 +28,7 @@ namespace TacRunner {
         DIV,
         MOD,
         MINUS,
+        NEG,
         EQ,
         NEQ,
         LT,
