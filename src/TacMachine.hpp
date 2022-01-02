@@ -1202,6 +1202,7 @@ namespace TacRunner
         uint run_free(const Tac&tac);
         uint run_exit(const Tac& tac);
         uint run_print(const Tac& tac, char type); // type is: i for int, c for char, f for float, s for string
+        uint run_read(const Tac& tac, char type); // type is: i for int, c for char, f for float, s for string
     };
 }
 

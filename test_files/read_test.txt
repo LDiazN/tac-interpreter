@@ -1,0 +1,9 @@
+malloc s 100
+readi i
+readf f
+readc c
+read s
+printi i 
+printf f
+printc c
+print s

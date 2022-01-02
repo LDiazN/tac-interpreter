@@ -981,6 +981,14 @@ uint TacMachine::run_tac_instruction(const Tac &tac)
         return run_print(tac, 's');
     case Instr::PRINTC:
         return run_print(tac, 'c');
+    case Instr::READI:
+        return run_read(tac, 'i');
+    case Instr::READF:
+        return run_read(tac, 'f');
+    case Instr::READ:
+        return run_read(tac, 's');
+    case Instr::READC:
+        return run_read(tac, 'c');
     default:
         stringstream ss;
         ss << "running instruction not yet implemented: " << tac.str();
@@ -1898,6 +1906,93 @@ uint TacMachine::run_print(const Tac& tac, char type)
     default:
         assert(false && "Invalid type argument");
         break;
+    }
+
+    return SUCCESS;
+}
+
+uint TacMachine::run_read(const Tac& tac, char type)
+{
+    const auto &args = tac.args();
+    assert(args.size() == 1 && "Invalid number of arguments in printx instruction");
+    const auto& var_arg = args[0];
+
+    // Check that variable is not access
+    assert(var_arg.is<Variable>());
+
+    const auto& var = var_arg.get<Variable>();
+    assert(!var.is_access && "can't store and read at the same time");
+
+    // get input
+    std::string input;
+    std::getline(cin, input);
+
+    // Parse according to type:
+    REGISTER_TYPE reg = 0;
+    union
+    {
+        float f;
+        char c;
+        int i;
+        REGISTER_TYPE reg;
+    } convert_to;
+    convert_to.reg = 0;
+
+    try
+    {
+        switch (type)
+        {
+        case 'c':
+            if (input.size() != 1)
+                throw std::invalid_argument("invalid char");
+            convert_to.c = input[0];
+            reg = convert_to.reg;
+            break;
+        case 'i':
+            convert_to.i = std::stoi(input);
+            reg = convert_to.reg;
+            break;
+        case 'f':
+            convert_to.f = std::stof(input);
+            reg = convert_to.reg;
+            break;
+        default:
+            break;
+        }
+    }
+    catch (std::invalid_argument&)
+    {
+            stringstream ss;
+            ss << "Could not parse argument in function " << instr_to_str(tac.instr());
+            ss << ". Received: " << input;
+            App::error(ss.str());
+            return FAIL;
+    }
+
+    // Now save according to type 
+    if (type != 's') // if scalar type
+    {
+        set_register(var.name, reg);
+        return SUCCESS;
+    }
+
+    // Store string in address:
+    uint addr;
+    if(get_register(var.name, addr) == FAIL)
+    {
+        stringstream ss;
+        ss << "Couldn't retrieve address in variable '" << var.str() << "' to store a string";
+        App::error(ss.str());
+        return FAIL;
+    }
+
+    if(m_memory.write((std::byte *) input.c_str(), input.size() + 1, addr) == FAIL)
+    {
+        stringstream ss;
+        ss << "Couldn't store given string '" << input << "' in address 0x " << std::hex << addr;
+        App::error(ss.str());
+
+        return FAIL;
     }
 
     return SUCCESS;
