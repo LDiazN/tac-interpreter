@@ -196,6 +196,29 @@ std::string VirtualHeap::str(bool show_memory) const
     return ss.str();
 }
 
+uint VirtualHeap::mem_pos(uint virtual_position, std::byte* &out_pos) const
+{
+    // Try to find the nearest position inside the virtual heap
+    auto it = m_memory_map.upper_bound(virtual_position);
+    if( it == m_memory_map.begin() )
+        return FAIL;
+    
+    it--;
+
+    auto const& [_, mem_chunk] = *it;
+
+    // check that virtual_position is inside this chunk 
+    auto pos_in_chunk = virtual_position - mem_chunk.start_pos();
+    
+    // Check if position inside chunk is out of range
+    if (pos_in_chunk >= mem_chunk.size())
+        return FAIL;
+
+    // Save position
+    out_pos = mem_chunk.memory().get() + pos_in_chunk;
+    return SUCCESS;
+}
+
 // -- < Virtual Stack Implementation > ------------------------------
 
 std::byte VirtualStack::m_memory[STACK_MEMORY_SIZE];
@@ -340,6 +363,12 @@ std::string VirtualStack::str(bool show_memory) const
     return ss.str();
 }
 
+uint VirtualStack::mem_pos(uint virtual_position, std::byte* &out_pos) const
+{
+    out_pos = m_memory + virtual_position;
+    return SUCCESS;
+}
+
 // -- < Static Memory Manager implementation > -----------------------------------------------------
 
 uint VirtualStaticMemory::get(size_t size)
@@ -478,6 +507,28 @@ std::string VirtualStaticMemory::str(bool show_memory) const
     return ss.str();
 }
 
+uint VirtualStaticMemory::mem_pos(uint virtual_position, std::byte* &out_pos) const
+{
+    // Try to find the nearest position inside the virtual heap
+    auto it = m_memory_map.upper_bound(virtual_position);
+    if( it == m_memory_map.begin() )
+        return FAIL;
+    
+    it--;
+
+    auto const& [_, mem_chunk] = *it;
+
+    // check that virtual_position is inside this chunk 
+    auto pos_in_chunk = virtual_position - mem_chunk.start_pos();
+    
+    // Check if position inside chunk is out of range
+    if (pos_in_chunk >= mem_chunk.size())
+        return FAIL;
+
+    // Save position
+    out_pos = mem_chunk.memory().get() + pos_in_chunk;
+    return SUCCESS;
+}
 
 // -- < Memory Manager implementation > ------------------------------------------------------------
 
@@ -725,6 +776,36 @@ uint MemoryManager::type_and_actual_pos_of(uint virtual_position, MemoryManager:
 
     return FAIL;
 }
+
+uint MemoryManager::mem_pos(uint global_position, byte * &out_actual_mem) const
+{
+    MemoryType type;
+    uint local_position;
+
+    if(type_and_actual_pos_of(global_position, type, local_position) == FAIL)
+    {
+        stringstream ss;
+        ss << "Could not retrieve physical position of global position 0x" << std::hex << global_position;
+        App::error(ss.str());
+        return FAIL;
+    }
+
+    switch (type)
+    {
+    case MemoryType::STACK_MEM:
+        return m_stack.mem_pos(local_position, out_actual_mem);
+    case MemoryType::HEAP:
+        return m_heap.mem_pos(local_position, out_actual_mem);
+    case MemoryType::STATIC:
+        return m_static.mem_pos(local_position, out_actual_mem);
+    default:
+        assert(false && "Invalid memory type");
+        break;
+    }
+
+    return FAIL;
+}
+
 // -- < Tac Machine implementation > -----------------------------------
 
 TacMachine::TacMachine(Program program)
@@ -847,22 +928,43 @@ uint TacMachine::run_tac_instruction(const Tac &tac)
     {
     case Instr::METASTATICV:
         return run_staticv(tac);
-        break;
     case Instr::METASTRING:
         return run_static_string(tac);
-        break;
     case Instr::METALABEL: // ignore
         return SUCCESS;
-        break;
     case Instr::ASSIGNW:
         return run_assignw(tac);
-        break;
+    case Instr::ADD:
+        return run_bin_op(tac, "add");
+    case Instr::SUB:
+        return run_bin_op(tac, "sub");
+    case Instr::MULT:
+        return run_bin_op(tac, "mult");
+    case Instr::DIV:
+        return run_bin_op(tac, "div");
+    case Instr::MOD:
+        return run_bin_op(tac, "mod");
+    case Instr::MINUS:
+        App::warning("Minus operation not yet implemented");
+        return SUCCESS;
+    case Instr::EQ:
+        return run_bin_op(tac, "eq", false);
+    case Instr::NEQ:
+        return run_bin_op(tac, "neq", false);
+    case Instr::LT:
+        return run_bin_op(tac, "lt");
+    case Instr::LEQ:
+        return run_bin_op(tac, "leq");
+    case Instr::GT:
+        return run_bin_op(tac, "gt");
+    case Instr::GEQ:
+        return run_bin_op(tac, "geq");
     case Instr::GOTO:
         return run_goto(tac);
-        break;
     case Instr::GOIF:
         return run_goif(tac);
-        break;
+    case Instr::GOIFNOT:
+        return run_goif(tac, true); // negated = true
     case Instr::MALLOC:
         return run_malloc(tac);
     case Instr::MEMCPY:
@@ -871,6 +973,14 @@ uint TacMachine::run_tac_instruction(const Tac &tac)
         return run_free(tac);
     case Instr::EXIT:
         return run_exit(tac);
+    case Instr::PRINTI:
+        return run_print(tac, 'i');
+    case Instr::PRINTF:
+        return run_print(tac, 'f');
+    case Instr::PRINT:
+        return run_print(tac, 's');
+    case Instr::PRINTC:
+        return run_print(tac, 'c');
     default:
         stringstream ss;
         ss << "running instruction not yet implemented: " << tac.str();
@@ -944,7 +1054,35 @@ uint TacMachine::access_var_value(const Variable &var, REGISTER_TYPE &out_value)
     
     out_value = addr;
     return SUCCESS;
-}    
+}
+
+uint TacMachine::actual_value(const Value& val, REGISTER_TYPE& out_actual_val)
+{
+    REGISTER_TYPE reg;
+    if(val.is<Variable>())
+    {
+        auto const &v = val.get<Variable>();
+        if(access_var_value(v, reg) == FAIL)
+        {
+            stringstream ss;
+            ss << "Could not retrieve value for " << v.str();
+            App::error(ss.str());
+            return FAIL;
+        }
+    }
+    else if(!val.is<std::string>())
+    {
+        reg = get_inmediate_from_value_w(val);
+    }
+    else
+    {
+        App::error("Can't retrieve value of a string into a register");
+        return FAIL;
+    }
+
+    out_actual_val = reg;
+    return SUCCESS;
+}
 
 std::string TacMachine::str(bool show_memory, bool show_labels, bool show_registers)
 {
@@ -1076,6 +1214,9 @@ uint TacMachine::run_static_string(const Tac& tac)
 
     // Get enough memory for the string 
     auto mem_pos = m_memory.get_static_memory(string.size()+1);
+
+    // Write string position and name to register
+    set_register(name, mem_pos);
 
     return m_memory.write((std::byte *) string.c_str(), string.size()+1, mem_pos);
 }
@@ -1313,6 +1454,231 @@ uint TacMachine::move(const Variable& var, const Variable& val)
     return SUCCESS;
 }
 
+uint TacMachine::run_bin_op(const Tac& tac, const std::string& opr_type, bool type_matters)
+{
+    const auto &args = tac.args();
+    assert(args.size() == 3 && "Invalid number of arguments in binary operation instruction");
+    
+    // get values
+    const auto& lvalue_arg = args[0];
+    const auto& l_operand_arg = args[1];
+    const auto& r_operand_arg = args[2];
+
+    // Check that lvalue is a variable only 
+    assert(lvalue_arg.is<Variable>());
+
+    // Get actual variable
+    auto const &lvalue = lvalue_arg.get<Variable>();
+    assert(!lvalue.is_access && "should not perform store and binary operation at the same time");
+
+    // Get name of variables
+    auto const &var_name = lvalue.name;
+
+    // Check type matching of args
+    uint l_val;
+    uint r_val;
+    bool l_is_float;
+    bool r_is_float;
+
+
+    // try to get type and value of l argument
+    if(is_float(l_operand_arg, l_val, l_is_float) == FAIL)
+    {
+        stringstream ss; 
+        ss << "could not get type of value " << l_operand_arg.str();
+        ss << ". Perhaps such variable does not exists?";
+        App::error(ss.str());
+
+        return FAIL;
+    }
+
+    // try to get type and value of r argument
+    if(is_float(r_operand_arg, r_val, r_is_float) == FAIL)
+    {
+        stringstream ss; 
+        ss << "could not get type of value " << r_operand_arg.str();
+        ss << ". Perhaps such variable does not exists?";
+        App::error(ss.str());
+
+        return FAIL;
+    }
+
+    // type checking
+    if (type_matters && (l_is_float != r_is_float))
+    {
+        stringstream ss;
+        ss << "Can't operate values of different types.";
+        ss << " left operand is: " << (l_is_float ? "float" : "not float") << ".";
+        ss << " right operand is: " << (r_is_float ? "float" : "not float") << ".";
+
+        App::error(ss.str());
+        return FAIL;
+    }
+
+    // Select operation to perform
+    std::function<uint(uint,uint, uint&)> opr;
+    if(opr_type == "add" && l_is_float)
+        opr = addf;
+    else if(opr_type == "add")
+        opr = add;
+    else if(opr_type == "sub" && l_is_float)
+        opr = subf;
+    else if(opr_type == "sub")
+        opr = sub;
+    else if(opr_type == "mult" && l_is_float)
+        opr = multf;
+    else if(opr_type == "mult")
+        opr = mult;
+    else if(opr_type == "div" && l_is_float)
+        opr = divf;
+    else if(opr_type == "div")
+        opr = div;
+    else if(opr_type == "mod" && l_is_float)
+    {
+        stringstream ss;
+        ss << "Error in instruction " << tac.str();
+        ss << ". mod operation not defined for float";
+        App::error(ss.str());
+    }
+    else if (opr_type == "mod")
+        opr = mod;
+    else if (opr_type == "eq")
+        opr = eq;
+    else if (opr_type == "neq")
+        opr = neq;
+    else if (opr_type == "lt" && l_is_float)
+        opr = ltf;
+    else if (opr_type == "lt")
+        opr = lt;
+    else if (opr_type == "leq" && l_is_float)
+        opr = leqf;
+    else if (opr_type == "leq")
+        opr = leq;
+    else if (opr_type == "gt" && l_is_float)
+        opr = gtf;
+    else if (opr_type == "gt")
+        opr = gt;
+    else if (opr_type == "geq" && l_is_float)
+        opr = geqf;
+    else if (opr_type == "geq")
+        opr = geq;
+    else
+    {
+        stringstream ss;
+        ss << "invalid operation type: " << opr_type;
+        App::error(ss.str());
+        assert(false);
+    }
+    uint result;
+    if(opr(l_val, r_val, result) == FAIL)
+    {
+        stringstream ss;
+        ss << "Could not perform binary operation " << tac.str();
+        App::error(ss.str());
+        return FAIL;
+    }
+
+    set_register(var_name, result);
+    return SUCCESS;
+}
+
+uint TacMachine::is_float(const Value& val, uint &out_actual_val, bool &out_is_float)
+{
+
+    assert(!val.is<std::string>());
+
+    union {
+        float f;
+        int i;
+        char c;
+        uint u;
+    } any;
+
+    if(val.is<float>())
+    {
+        any.f = val.get<float>();
+        out_actual_val = any.u;
+        out_is_float = true;
+    }
+    else if (val.is<int>())
+    {
+        any.i = val.get<int>();
+        out_actual_val = any.u;
+        out_is_float = false;
+    }
+    else if (val.is<char>())
+    {
+        any.u = 0;
+        any.c = val.get<char>();
+        out_actual_val = any.u;
+        out_is_float = false;
+    }
+    else if (val.is<Variable>())
+    {
+        auto const& var = val.get<Variable>();
+        assert(var.name.size() > 0);
+
+        // check that var actually exists
+        uint actual_val;
+        if (get_var_value(var, actual_val) == FAIL)
+            return FAIL;
+
+        out_actual_val = actual_val;
+        if (var.name[0] == 'f') // floats start with f
+            out_is_float = true;
+        else 
+            out_is_float = false;
+    }
+
+    return SUCCESS;
+}
+
+float TacMachine::reg_to_float(REGISTER_TYPE val)
+{
+    union {
+        float f;
+        REGISTER_TYPE reg;
+    } converter;
+
+    converter.reg = val;
+    return converter.f;
+}
+
+REGISTER_TYPE TacMachine::float_to_reg(float val)
+{
+    union {
+        float f;
+        REGISTER_TYPE reg;
+    } converter;
+
+    converter.f = val;
+    return converter.reg;
+}
+
+uint TacMachine::div(uint l_val, uint r_val, uint& out_result)
+{
+    if (r_val == 0)
+    {
+        App::error("Division by 0");
+        return FAIL;
+    }
+    
+    out_result =  l_val / r_val;
+    return SUCCESS;
+}
+
+uint TacMachine::divf(uint l_val, uint r_val, uint& out_result)
+{
+    if (r_val == 0)
+    {
+        App::error("Division by 0");
+        return FAIL;
+    }
+    
+    out_result =  float_to_reg(reg_to_float(l_val) / reg_to_float(r_val));
+    return SUCCESS;
+}
+
 uint TacMachine::run_goto(const Tac& tac)
 {
     assert(tac.instr() == Instr::GOTO && "Invalid instruction type");
@@ -1328,7 +1694,13 @@ uint TacMachine::run_goto(const Tac& tac)
 
 uint TacMachine::run_goif(const Tac& tac, bool is_negated)
 {
-    assert(tac.instr() == Instr::GOIF && "Invalid instruction type");
+    assert(
+            (
+                (tac.instr() == Instr::GOIF && !is_negated) ||
+                (tac.instr() == Instr::GOIFNOT && is_negated)
+            ) &&
+                "Invalid instruction type"
+        );
     const auto &args = tac.args();
     assert(args.size() == 2 && "Invalid number of arguments in goif instruction");
 
@@ -1472,6 +1844,61 @@ uint TacMachine::run_exit(const Tac& tac)
     const auto exit_code = var_arg.get<int>();
     m_exit_status_code = exit_code;
     m_status = Status::FINISHED;
+
+    return SUCCESS;
+}
+
+uint TacMachine::run_print(const Tac& tac, char type)
+{
+    union {
+        float f;
+        int   i;
+        char  c;
+    } constant;
+
+    const auto &args = tac.args();
+    assert(args.size() == 1 && "Invalid number of arguments in printx instruction");
+    const auto& var_arg = args[0];
+
+    REGISTER_TYPE val;
+    if(actual_value(var_arg, val) == FAIL)
+        return FAIL;
+
+    // Print value according to type
+    constant.i = val;
+    stringstream ss;
+    std::byte *string_pos = nullptr;
+
+    switch (type)
+    {
+    case 'i':
+        ss << constant.i;
+        App::program_log(ss.str());
+        break;
+    case 'c':
+        ss << constant.c;
+        App::program_log(ss.str());
+        break;
+    case 'f':
+        ss << constant.f;
+        App::program_log(ss.str());
+        break;
+    case 's':
+        if (m_memory.mem_pos(val, string_pos) == FAIL)
+        {
+            ss << "[segmentation fault] Can't print string at position 0x" << std::hex << val;
+            ss << ", that's not a valid memory position";
+            App::error(ss.str());
+
+            return FAIL;
+        }
+        ss << (char *) string_pos;
+        App::program_log(ss.str());
+        break;
+    default:
+        assert(false && "Invalid type argument");
+        break;
+    }
 
     return SUCCESS;
 }

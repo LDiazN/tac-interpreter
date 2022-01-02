@@ -203,5 +203,10 @@ namespace TacRunner
         ss << "[TRACE] " << msg;
         App::log_msg(ss.str());
     }
+
+    void App::program_log(std::string msg)
+    {
+        cout << "program: " << msg << std::endl;;
+    }
     
 }

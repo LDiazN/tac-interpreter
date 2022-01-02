@@ -1,0 +1,8 @@
+@string my_str "hola mundo"
+assignw x 99
+assignw y 10.5
+assignw c 'c'
+printi x
+printf y
+printc c
+print my_str

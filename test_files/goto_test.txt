@@ -9,6 +9,12 @@ assignw dont_wanna_live_2 1
 goif l3 0
 assignw wanna_live_1 1
 @label l3
+goifnot l4 1
+assignw wanna_live_2 1
+@label l4
+goifnot l5 0
+assignw dont_wanna_live_3 1
+@label l5
 goto end
 assignw x 99
 @label end

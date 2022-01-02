@@ -132,6 +132,13 @@ namespace TacRunner
              */
             static void trace(std::string msg);
 
+            /**
+             * @brief log a message for the program currently running, not the app
+             * 
+             * @param msg message to log
+             */
+            static void program_log(std::string msg);
+
         private:
             /**
              * @brief Los a message to stdout

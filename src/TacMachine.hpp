@@ -10,11 +10,13 @@
 // Local includes 
 #include "Tac.hpp"
 
+
 // C++ includes
 #include <array>
 #include <map>
 #include <cstddef> // byte type
 #include <memory>
+#include <functional>
 
 // Size of the stack memory
 #define MACHINE_MEMORY_SIZE 1000000000
@@ -31,6 +33,9 @@
 #define REGISTER_TYPE uint32_t // unsigned int 32 bits as register, to simulate a 32 bits machine
 #define BASE "BASE"   // base special variable name
 #define STACK "STACK" // stack special variable name 
+
+#define SUCCESS 0 
+#define FAIL 1
 
 // Memory for each 
 namespace TacRunner 
@@ -128,6 +133,8 @@ namespace TacRunner
                             , m_free_counter(0)
                             , m_allocated_memory(0)
             { }
+
+            friend class MemoryManager;
 
             /**
              * @brief Allocate 'size' bytes of memory in the virtual heap memory, return the position if 
@@ -244,6 +251,17 @@ namespace TacRunner
 
         private:
             /**
+             * @brief Get the actual physical memory position of the given 
+             *        virtual position
+             * 
+             * @param virtual_position position in heap position space 
+             * @param out_pos actual position
+             * @return uint success status, 0 on success, 1 on failure
+             */
+            uint mem_pos(uint virtual_position, std::byte* &out_pos) const;
+
+        private:
+            /**
              * @brief Next possible position for a new memory segment
              * 
              */
@@ -290,6 +308,8 @@ namespace TacRunner
     {
         public:
         VirtualStack();
+
+        friend class MemoryManager;
 
         /**
          * @brief push 'count' bytes of data into the stack, from 'memory'
@@ -401,6 +421,18 @@ namespace TacRunner
         std::string str(bool show_memory = false) const;
 
         private:
+
+        /**
+         * @brief Get the actual physical memory position of the given 
+         *        virtual position
+         * 
+         * @param virtual_position position in stack position space 
+         * @param out_pos actual position
+         * @return uint success status, 0 on success, 1 on failure
+         */
+        uint mem_pos(uint virtual_position, std::byte* &out_pos) const;
+
+        private:
         /**
          * @brief Current stack pointer, the next available position where to store data
          * 
@@ -456,6 +488,8 @@ namespace TacRunner
                 , m_allocations_counter(0)
                 , m_allocated_memory(0)
             { }
+
+            friend class MemoryManager;
 
             /**
              * @brief Allocate 'size' bytes of memory in the virtual static memory, return the position if 
@@ -556,6 +590,17 @@ namespace TacRunner
 
         private:
             /**
+             * @brief Get the actual physical memory position of the given 
+             *        virtual position
+             * 
+             * @param virtual_position position in static position space 
+             * @param out_pos actual position
+             * @return uint success status, 0 on success, 1 on failure
+             */
+            uint mem_pos(uint virtual_position, std::byte* &out_pos) const;
+
+        private:
+            /**
              * @brief Next possible position for a new memory segment
              * 
              */
@@ -604,6 +649,8 @@ namespace TacRunner
     class MemoryManager
     {
         public:
+
+        friend class TacMachine;
 
         /**
          * @brief Possible type of memories
@@ -693,8 +740,6 @@ namespace TacRunner
         static inline size_t stack_end()    { return stack_start() + STACK_MEMORY_SIZE; }
         static inline size_t heap_start()   { return stack_end(); }
         static inline size_t heap_end()     { return heap_start() + HEAP_MEMORY_SIZE; }
-
-        
 
         public: // Heap functions
         /**
@@ -848,6 +893,17 @@ namespace TacRunner
          *         address for whichever reason
          */
         static uint type_and_actual_pos_of(uint virtual_position, MemoryType &out_mem_type, uint &out_actual_pos);
+
+        private:
+
+        /**
+         * @brief retrieve the actual pointer to a valid memory position
+         * 
+         * @param global_position virtual global position
+         * @param out_actual_mem pointer to local memory
+         * @return uint success status, 0 on success, 1 on failure
+         */
+        uint mem_pos(uint global_position, std::byte * &out_actual_mem) const;
 
         private:
         /**
@@ -1010,6 +1066,15 @@ namespace TacRunner
          */
         uint access_var_value(const Variable &var, REGISTER_TYPE &out_value);
 
+        /**
+         * @brief Get the actual value of a value, it 
+         * 
+         * @param val value you want to poll
+         * @param out_actual_val where to write actual value 
+         * @return uint 
+         */
+        uint actual_value(const Value& val, REGISTER_TYPE& out_actual_val);
+
         private: 
         /**
          * @brief Program beeing run 
@@ -1088,12 +1153,55 @@ namespace TacRunner
             uint store(const Variable& var, const Variable& val);           // x[10] = y
             uint move_mem(const Variable& var, const Variable& val);        // x[10] = y[24];
             uint move(const Variable& var, const Variable& val);            // x = y;
+        uint run_bin_op(const Tac& tac, const std::string& opr_type, bool type_matters = true); 
+            // if this value is a float, and return the actual value, return success status
+            uint is_float(const Value& val, uint & out_actual_val, bool &out_is_float);
+            static float reg_to_float(REGISTER_TYPE val);
+            static REGISTER_TYPE float_to_reg(float val);
+            static uint add(uint l_val, uint r_val, uint& out_result) 
+                { out_result = l_val + r_val; return SUCCESS; }
+            static uint sub(uint l_val, uint r_val, uint& out_result)
+                { out_result = l_val - r_val; return SUCCESS; }
+            static uint mult(uint l_val, uint r_val, uint& out_result)
+                { out_result = l_val * r_val; return SUCCESS; }
+            static uint div(uint l_val, uint r_val, uint& out_result);
+            static uint mod(uint l_val, uint r_val, uint& out_result)
+                { out_result = l_val % r_val; return SUCCESS; }
+            static uint addf(uint l_val, uint r_val, uint& out_result)
+                { out_result = float_to_reg(reg_to_float(l_val) + reg_to_float(r_val)); return SUCCESS; }
+            static uint subf(uint l_val, uint r_val, uint& out_result)
+                { out_result = float_to_reg(reg_to_float(l_val) - reg_to_float(r_val)); return SUCCESS; }
+            static uint multf(uint l_val, uint r_val, uint& out_result)
+                { out_result = float_to_reg(reg_to_float(l_val) * reg_to_float(r_val)); return SUCCESS; }
+            static uint divf(uint l_val, uint r_val, uint& out_result);
+            static uint eq(uint l_val, uint r_val, uint& out_result)
+                { out_result = l_val == r_val; return SUCCESS; }
+            static uint neq(uint l_val, uint r_val, uint& out_result)
+                { out_result = l_val != r_val; return SUCCESS; }
+            static uint lt(uint l_val, uint r_val, uint& out_result)
+                { out_result = l_val < r_val; return SUCCESS; }
+            static uint leq(uint l_val, uint r_val, uint& out_result)
+                { out_result = l_val <= r_val; return SUCCESS; }
+            static uint ltf(uint l_val, uint r_val, uint& out_result)
+                { out_result = reg_to_float(l_val) < reg_to_float(r_val); return SUCCESS; }
+            static uint leqf(uint l_val, uint r_val, uint& out_result)
+                { out_result = reg_to_float(l_val) <= reg_to_float(r_val); return SUCCESS; }
+            static uint gt(uint l_val, uint r_val, uint& out_result)
+                { out_result = l_val > r_val; return SUCCESS; }
+            static uint geq(uint l_val, uint r_val, uint& out_result)
+                { out_result = l_val >= r_val; return SUCCESS; }
+            static uint gtf(uint l_val, uint r_val, uint& out_result)
+                { out_result = reg_to_float(l_val) > reg_to_float(r_val); return SUCCESS; }
+            static uint geqf(uint l_val, uint r_val, uint& out_result)
+                { out_result = reg_to_float(l_val) >= reg_to_float(r_val); return SUCCESS; }
+
         uint run_goto(const Tac& tac);
         uint run_goif(const Tac& tac, bool is_negated = false);
         uint run_malloc(const Tac& tac);
         uint run_memcpy(const Tac& tac);
         uint run_free(const Tac&tac);
         uint run_exit(const Tac& tac);
+        uint run_print(const Tac& tac, char type); // type is: i for int, c for char, f for float, s for string
     };
 }
 

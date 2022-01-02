@@ -1,0 +1,10 @@
+assignw i1 42
+assignw i2 69
+assignw f1 42.0
+assignw f2 69.0
+#add f_x1 f1 f2
+#add i_x1 i1 i2
+#printi i_x1
+#printf f_x1
+add err i1 f1
+printi err
