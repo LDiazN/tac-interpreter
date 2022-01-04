@@ -1,0 +1,7 @@
+assignw x 1
+printi x
+minus x x
+printi x
+assignw x 0
+neg x x
+printi x

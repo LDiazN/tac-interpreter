@@ -14,11 +14,12 @@
 
 int main(int argc, char *argv[])
 {
-    std::vector<std::string> args;
     // create arg vector
+    std::vector<std::string> args;
     for(int i=0; i < argc; i++)
         args.push_back(argv[i]);
 
+    // Try to run app
     try
     {
         TacRunner::App app = TacRunner::App::from_arg_list(args);

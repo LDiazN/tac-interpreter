@@ -7,3 +7,4 @@ printi i
 printf f
 printc c
 print s
+param x 10

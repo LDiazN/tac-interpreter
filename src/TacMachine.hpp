@@ -17,6 +17,7 @@
 #include <cstddef> // byte type
 #include <memory>
 #include <functional>
+#include <stack>
 
 // Size of the stack memory
 #define MACHINE_MEMORY_SIZE 1000000000
@@ -926,6 +927,18 @@ namespace TacRunner
     };
 
     /**
+     * @brief previous state in the program
+     * 
+     */
+    struct BackUp
+    {
+        size_t program_counter;
+        size_t stack_pointer;
+        size_t frame_pointer;
+        std::string next_return_reg; // (in global address)
+    };
+
+    /**
      * @brief This class represents a Tac machine capable of running tac code
      *        as if it was a special processor for tac code
      * 
@@ -1028,6 +1041,27 @@ namespace TacRunner
         { auto pc = program_counter(); return m_program[pc < m_program.size() ? pc : pc - 1]; }
 
         private:
+
+        /**
+         * @brief Creates a back up of the program state in the stack of states
+         * 
+         */
+        void push_program_state(const std::string& next_return_reg);
+
+        /**
+         * @brief pop program state, setting de old state as the current state
+         * 
+         * @return uint success status, 0 on success, 1 else
+         */
+        uint pop_program_state();
+
+        /**
+         * @brief Get the last status saved
+         * 
+         * @return const BackUp& reference to last status saved
+         */
+        inline const BackUp& last_back_up() const { return m_back_ups.top(); }
+
         /**
          * @brief Run a single tac instruction. Successful execution will increase the program counter
          * 
@@ -1046,8 +1080,9 @@ namespace TacRunner
         /**
          * @brief Set the up label map object to match the stored program 
          * 
+         * @return uint success status, 0 on success, 1 else
          */
-        void set_up_label_map();
+        uint set_up_label_map();
 
         /**
          * @brief Get var's value: X == X, X[Y] == X + Y 
@@ -1130,6 +1165,13 @@ namespace TacRunner
          */
         REGISTER_TYPE m_exit_status_code;
 
+        /**
+         * @brief Represents a previous state in the program to go back 
+         *        when a return instruction is called
+         * 
+         */
+        stack<BackUp> m_back_ups;
+
         private:
         // The following section contains functions for every instruction, every function
         // returns its success status, 0 on success, 1 on failure
@@ -1201,8 +1243,13 @@ namespace TacRunner
         uint run_memcpy(const Tac& tac);
         uint run_free(const Tac&tac);
         uint run_exit(const Tac& tac);
+        uint run_return(const Tac& tac);
+        uint run_call(const Tac& tac);
+        uint run_return(const Tac& tac);
         uint run_print(const Tac& tac, char type); // type is: i for int, c for char, f for float, s for string
         uint run_read(const Tac& tac, char type); // type is: i for int, c for char, f for float, s for string
+        uint run_funbegin(const Tac&tac);
+        uint run_funend(const Tac&tac);
     };
 }
 

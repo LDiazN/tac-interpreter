@@ -921,6 +921,40 @@ uint TacMachine::goto_label(std::string label_name)
     return SUCCESS;
 }
 
+void TacMachine::push_program_state(const std::string& next_return_reg)
+{
+    m_back_ups.push(
+        BackUp
+        {
+            program_counter(), 
+            stack_pointer(), 
+            frame_pointer(), 
+            next_return_reg
+        }
+    );
+}
+
+uint TacMachine::pop_program_state()
+{
+    if(m_back_ups.size() == 0)
+    {
+        stringstream ss;
+        
+        ss << "Could not restore previous program state, there's no previous program state";
+        App::error(ss.str());
+        return FAIL;
+    }
+
+    auto const& backup = last_back_up();
+    m_program_counter = backup.program_counter;
+    m_memory.set_stack_pointer(backup.stack_pointer);
+    m_frame_pointer = backup.frame_pointer;
+
+    m_back_ups.pop();
+
+    return SUCCESS;
+}
+
 uint TacMachine::run_tac_instruction(const Tac &tac)
 {
 
@@ -974,6 +1008,10 @@ uint TacMachine::run_tac_instruction(const Tac &tac)
         return run_free(tac);
     case Instr::EXIT:
         return run_exit(tac);
+    case Instr::RETURN:
+        return run_return(tac);
+    case Instr::CALL:
+        return run_call(tac);
     case Instr::PRINTI:
         return run_print(tac, 'i');
     case Instr::PRINTF:
@@ -1010,13 +1048,15 @@ void TacMachine::reset_instruction_count()
     }
 }
 
-void TacMachine::set_up_label_map()
+uint TacMachine::set_up_label_map()
 {
     m_label_map.clear();
     // Find labels in program
     for(size_t i = 0; i < m_program.size(); i++)
     {
         auto const &t = m_program[i];
+        std::string label_name;
+
         if (t.instr() == Instr::METALABEL) // if label, get instruction name (first argument)
         {
             const auto &args = t.args();
@@ -1026,11 +1066,36 @@ void TacMachine::set_up_label_map()
             // get value of name 
             const auto &name_val = args[0];
             assert(name_val.is<std::string>() && "Error: The only argument of @label should be its name, a string");
-            const auto &name = name_val.get<std::string>();
-
-            m_label_map[name] = i;
+            label_name = name_val.get<std::string>();
         }
+        else if(t.instr() == Instr::METAFUNBEGIN)
+        {
+            const auto &args = t.args();
+            assert(args.size() == 2 && "Error: @beginfun should provide only function name and stack size");
+
+            // get value of name
+            auto const &name_arg = args[0];
+            assert(name_arg.is<std::string>());
+
+            // Get function name as a label
+            label_name = name_arg.get<std::string>();
+        }
+        else 
+            continue;
+        
+        // Check that such label does not exists yet
+        if (m_label_map.find(label_name) != m_label_map.end())
+        {
+            stringstream ss;
+            ss << "Duplicate label: " << label_name;
+            App::error(ss.str());
+
+            return FAIL;
+        }
+        m_label_map[label_name] = i;
     }
+
+    return SUCCESS;
 }
 
 uint TacMachine::get_var_value(const Variable &var, REGISTER_TYPE &out_value)
@@ -1902,6 +1967,78 @@ uint TacMachine::run_exit(const Tac& tac)
     return SUCCESS;
 }
 
+uint TacMachine::run_return(const Tac& tac)
+{
+    assert(tac.instr() == Instr::RETURN && "Invalid instruction type");
+    const auto &args = tac.args();
+    assert(args.size() == 1 && "Invalid number of arguments in return instruction");
+
+    // Get return value
+    const auto& val_arg = args[0];
+    REGISTER_TYPE reg;
+
+    // Check for errors 
+    if(actual_value(val_arg, reg) == FAIL)
+    {
+        stringstream ss;
+        ss << "Could not get value for return instruction";
+        App::error(ss.str());
+
+        return FAIL;
+    }
+
+    auto const& back_up = last_back_up();
+    // Write actual value and check for errors
+    set_register(back_up.next_return_reg, reg);
+
+    // Go back to previous state
+    if(pop_program_state() == FAIL)
+    {
+        App::error("Could not go back to previous program state while trying to return from function");
+        return FAIL;
+    }
+
+    return SUCCESS;
+}
+
+uint TacMachine::run_call(const Tac& tac)
+{
+    assert(tac.instr() == Instr::CALL && "Invalid instruction type");
+    const auto &args = tac.args();
+    assert(args.size() == 2 && "Invalid number of arguments in call instruction");
+    
+    const auto& next_return_arg = args[0];
+    const auto& function_name_arg = args[1];
+
+    // Try to get actual values
+    assert(next_return_arg.is<Variable>());
+    assert(function_name_arg.is<std::string>());
+
+    const auto& next_return = next_return_arg.get<Variable>();
+    const auto& function_name = function_name_arg.get<std::string>();
+
+    // Check argument consistency
+    assert(!next_return.is_access);
+
+    // perform save of current state
+    push_program_state(next_return.name);
+
+    // Go to function location
+    if (goto_label(function_name) == FAIL)
+    {
+        stringstream ss;
+        ss << "Could not go to function '" << function_name << "'";
+        App::error(ss.str());
+
+        return FAIL;
+    }
+
+    assert(m_program_counter != 0 && "Can't go back one instruction");
+    m_program_counter--;
+
+    return SUCCESS;
+}
+
 uint TacMachine::run_print(const Tac& tac, char type)
 {
     union {
@@ -2043,3 +2180,34 @@ uint TacMachine::run_read(const Tac& tac, char type)
 
     return SUCCESS;
 }
+
+uint TacMachine::run_funbegin(const Tac&tac)
+{
+    assert(tac.instr() == Instr::METAFUNBEGIN);
+    const auto &args = tac.args();
+    assert(args.size() == 2 && "Invalid number of arguments in @function instruction");
+    const auto& stack_size_arg = args[1];
+
+    // assume stack size if int
+    assert(stack_size_arg.is<int>());
+    auto stack_size = stack_size_arg.get<int>();
+
+    m_memory.set_stack_pointer(stack_pointer() + stack_size);
+
+    return SUCCESS;
+}
+
+uint TacMachine::run_funend(const Tac& tac)
+{
+    assert(tac.instr() == Instr::METAFUNEND);
+
+    // return previous state
+
+    if(pop_program_state() == FAIL)
+    {
+        App::error("Could not go back to previous position after finishing a function");
+        return FAIL;
+    }
+
+    return SUCCESS;
+}   
