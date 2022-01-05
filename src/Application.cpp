@@ -86,7 +86,8 @@ namespace TacRunner
             App::success("Program execution successful");
 
         App::trace("Resulting state summary: ");
-        cout << machine.str(true, true, true) << endl;
+        if(!m_config.quiet)
+            cout << machine.str(true, true, true) << endl;
     }
 
     std::string App::help_msg() const
@@ -146,12 +147,17 @@ namespace TacRunner
         if(std::find(args.begin(), args.end(), help_flag) != args.end())
             actions.push_back(Action::SHOW_HELP);
 
+        // Check if should be quiet
+        bool quiet = std::find(args.begin(), args.end(), App::quiet()) != args.end();
+
         // Tell the app to run some code
         actions.push_back(Action::RUN_TAC_CODE);
 
         // This is the only field for now
         out_config.filename = filename;
         out_config.actions.swap(actions);
+        out_config.quiet = quiet;
+
         return SUCCESS;
     }
 

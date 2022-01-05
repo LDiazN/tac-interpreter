@@ -19,7 +19,7 @@ MemoryChunk::MemoryChunk(uint size, uint start_pos)
 
     memset(mem_ptr, 0, m_size);
 }
-
+    
 std::string MemoryChunk::str(bool show_memory) const
 {
     std::stringstream ss;

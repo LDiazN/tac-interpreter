@@ -41,6 +41,7 @@ namespace TacRunner
     {
         std::string filename; // file where to parse the tac code
         std::vector<Action> actions; // Which actions should the application perform
+        bool quiet;
 
         /**
          * @brief Create a config from a list of arguments,
@@ -103,6 +104,13 @@ namespace TacRunner
              * @return std::string 
              */
             static inline std::string help_flag() { return "--help"; }
+
+            /**
+             * @brief Property with quiet flag
+             * 
+             * @return std::string 
+             */
+            static inline std::string quiet() { return "--quiet"; }
 
             /**
              * @brief Los a message to stderr formated as error
