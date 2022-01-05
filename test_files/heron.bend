@@ -39,25 +39,380 @@ goto for_start__L1
 return for_result__f1
 @label heron_end__L0
 @endfunction 12
-@function main__0 8
+@function main__0 24
+@label while_start__L5
+assignb T11 True
+goifnot while_out__L6 T11
+assignw T12 STACK
+add STACK STACK 37
+add T13 BASE 0
+assignw T13[0] T12
+assignw T13[4] 37
+assignb T14 'D'
+add T15 T12 0
+# Copy from "T14" to "T15"
+assignb T15[0] T14
+assignb T16 'E'
+add T17 T12 1
+# Copy from "T16" to "T17"
+assignb T17[0] T16
+assignb T18 ' '
+add T19 T12 2
+# Copy from "T18" to "T19"
+assignb T19[0] T18
+assignb T20 '0'
+add T21 T12 3
+# Copy from "T20" to "T21"
+assignb T21[0] T20
+assignb T22 ' '
+add T23 T12 4
+# Copy from "T22" to "T23"
+assignb T23[0] T22
+assignb T24 'P'
+add T25 T12 5
+# Copy from "T24" to "T25"
+assignb T25[0] T24
+assignb T26 'A'
+add T27 T12 6
+# Copy from "T26" to "T27"
+assignb T27[0] T26
+assignb T28 'R'
+add T29 T12 7
+# Copy from "T28" to "T29"
+assignb T29[0] T28
+assignb T30 'A'
+add T31 T12 8
+# Copy from "T30" to "T31"
+assignb T31[0] T30
+assignb T32 ' '
+add T33 T12 9
+# Copy from "T32" to "T33"
+assignb T33[0] T32
+assignb T34 'T'
+add T35 T12 10
+# Copy from "T34" to "T35"
+assignb T35[0] T34
+assignb T36 'E'
+add T37 T12 11
+# Copy from "T36" to "T37"
+assignb T37[0] T36
+assignb T38 'R'
+add T39 T12 12
+# Copy from "T38" to "T39"
+assignb T39[0] T38
+assignb T40 'M'
+add T41 T12 13
+# Copy from "T40" to "T41"
+assignb T41[0] T40
+assignb T42 'I'
+add T43 T12 14
+# Copy from "T42" to "T43"
+assignb T43[0] T42
+assignb T44 'N'
+add T45 T12 15
+# Copy from "T44" to "T45"
+assignb T45[0] T44
+assignb T46 'A'
+add T47 T12 16
+# Copy from "T46" to "T47"
+assignb T47[0] T46
+assignb T48 'R'
+add T49 T12 17
+# Copy from "T48" to "T49"
+assignb T49[0] T48
+assignb T50 ' '
+add T51 T12 18
+# Copy from "T50" to "T51"
+assignb T51[0] T50
+assignb T52 'O'
+add T53 T12 19
+# Copy from "T52" to "T53"
+assignb T53[0] T52
+assignb T54 ' '
+add T55 T12 20
+# Copy from "T54" to "T55"
+assignb T55[0] T54
+assignb T56 '1'
+add T57 T12 21
+# Copy from "T56" to "T57"
+assignb T57[0] T56
+assignb T58 ' '
+add T59 T12 22
+# Copy from "T58" to "T59"
+assignb T59[0] T58
+assignb T60 'P'
+add T61 T12 23
+# Copy from "T60" to "T61"
+assignb T61[0] T60
+assignb T62 'A'
+add T63 T12 24
+# Copy from "T62" to "T63"
+assignb T63[0] T62
+assignb T64 'R'
+add T65 T12 25
+# Copy from "T64" to "T65"
+assignb T65[0] T64
+assignb T66 'A'
+add T67 T12 26
+# Copy from "T66" to "T67"
+assignb T67[0] T66
+assignb T68 ' '
+add T69 T12 27
+# Copy from "T68" to "T69"
+assignb T69[0] T68
+assignb T70 'C'
+add T71 T12 28
+# Copy from "T70" to "T71"
+assignb T71[0] T70
+assignb T72 'O'
+add T73 T12 29
+# Copy from "T72" to "T73"
+assignb T73[0] T72
+assignb T74 'N'
+add T75 T12 30
+# Copy from "T74" to "T75"
+assignb T75[0] T74
+assignb T76 'T'
+add T77 T12 31
+# Copy from "T76" to "T77"
+assignb T77[0] T76
+assignb T78 'I'
+add T79 T12 32
+# Copy from "T78" to "T79"
+assignb T79[0] T78
+assignb T80 'N'
+add T81 T12 33
+# Copy from "T80" to "T81"
+assignb T81[0] T80
+assignb T82 'U'
+add T83 T12 34
+# Copy from "T82" to "T83"
+assignb T83[0] T82
+assignb T84 'A'
+add T85 T12 35
+# Copy from "T84" to "T85"
+assignb T85[0] T84
+assignb T86 'R'
+add T87 T12 36
+# Copy from "T86" to "T87"
+assignb T87[0] T86
+assignw T88 T13[0]
+print T88
+readi T89
+add finish__T90 BASE 8
+# Copy from "T89" to "finish__T90"
+assignw finish__T90[0] T89
+add finish__T92 BASE 8
+assignw T93 finish__T92[0]
+assignw T94 0
+eq T95 T93 T94
+goifnot if_else__L7 T95
+goto while_out__L6
+goto if_out__L8
+@label if_else__L7
+assignw T96 STACK
+add STACK STACK 45
+add T97 BASE 12
+assignw T97[0] T96
+assignw T97[4] 45
+assignb T98 'I'
+add T99 T96 0
+# Copy from "T98" to "T99"
+assignb T99[0] T98
+assignb T100 'N'
+add T101 T96 1
+# Copy from "T100" to "T101"
+assignb T101[0] T100
+assignb T102 'T'
+add T103 T96 2
+# Copy from "T102" to "T103"
+assignb T103[0] T102
+assignb T104 'R'
+add T105 T96 3
+# Copy from "T104" to "T105"
+assignb T105[0] T104
+assignb T106 'O'
+add T107 T96 4
+# Copy from "T106" to "T107"
+assignb T107[0] T106
+assignb T108 'D'
+add T109 T96 5
+# Copy from "T108" to "T109"
+assignb T109[0] T108
+assignb T110 'U'
+add T111 T96 6
+# Copy from "T110" to "T111"
+assignb T111[0] T110
+assignb T112 'Z'
+add T113 T96 7
+# Copy from "T112" to "T113"
+assignb T113[0] T112
+assignb T114 'C'
+add T115 T96 8
+# Copy from "T114" to "T115"
+assignb T115[0] T114
+assignb T116 'A'
+add T117 T96 9
+# Copy from "T116" to "T117"
+assignb T117[0] T116
+assignb T118 ' '
+add T119 T96 10
+# Copy from "T118" to "T119"
+assignb T119[0] T118
+assignb T120 'U'
+add T121 T96 11
+# Copy from "T120" to "T121"
+assignb T121[0] T120
+assignb T122 'N'
+add T123 T96 12
+# Copy from "T122" to "T123"
+assignb T123[0] T122
+assignb T124 ' '
+add T125 T96 13
+# Copy from "T124" to "T125"
+assignb T125[0] T124
+assignb T126 'N'
+add T127 T96 14
+# Copy from "T126" to "T127"
+assignb T127[0] T126
+assignb T128 'U'
+add T129 T96 15
+# Copy from "T128" to "T129"
+assignb T129[0] T128
+assignb T130 'M'
+add T131 T96 16
+# Copy from "T130" to "T131"
+assignb T131[0] T130
+assignb T132 'E'
+add T133 T96 17
+# Copy from "T132" to "T133"
+assignb T133[0] T132
+assignb T134 'R'
+add T135 T96 18
+# Copy from "T134" to "T135"
+assignb T135[0] T134
+assignb T136 'O'
+add T137 T96 19
+# Copy from "T136" to "T137"
+assignb T137[0] T136
+assignb T138 ' '
+add T139 T96 20
+# Copy from "T138" to "T139"
+assignb T139[0] T138
+assignb T140 'R'
+add T141 T96 21
+# Copy from "T140" to "T141"
+assignb T141[0] T140
+assignb T142 'E'
+add T143 T96 22
+# Copy from "T142" to "T143"
+assignb T143[0] T142
+assignb T144 'A'
+add T145 T96 23
+# Copy from "T144" to "T145"
+assignb T145[0] T144
+assignb T146 'L'
+add T147 T96 24
+# Copy from "T146" to "T147"
+assignb T147[0] T146
+assignb T148 ' '
+add T149 T96 25
+# Copy from "T148" to "T149"
+assignb T149[0] T148
+assignb T150 'M'
+add T151 T96 26
+# Copy from "T150" to "T151"
+assignb T151[0] T150
+assignb T152 'A'
+add T153 T96 27
+# Copy from "T152" to "T153"
+assignb T153[0] T152
+assignb T154 'Y'
+add T155 T96 28
+# Copy from "T154" to "T155"
+assignb T155[0] T154
+assignb T156 'O'
+add T157 T96 29
+# Copy from "T156" to "T157"
+assignb T157[0] T156
+assignb T158 'R'
+add T159 T96 30
+# Copy from "T158" to "T159"
+assignb T159[0] T158
+assignb T160 ' '
+add T161 T96 31
+# Copy from "T160" to "T161"
+assignb T161[0] T160
+assignb T162 'O'
+add T163 T96 32
+# Copy from "T162" to "T163"
+assignb T163[0] T162
+assignb T164 ' '
+add T165 T96 33
+# Copy from "T164" to "T165"
+assignb T165[0] T164
+assignb T166 'I'
+add T167 T96 34
+# Copy from "T166" to "T167"
+assignb T167[0] T166
+assignb T168 'G'
+add T169 T96 35
+# Copy from "T168" to "T169"
+assignb T169[0] T168
+assignb T170 'U'
+add T171 T96 36
+# Copy from "T170" to "T171"
+assignb T171[0] T170
+assignb T172 'A'
+add T173 T96 37
+# Copy from "T172" to "T173"
+assignb T173[0] T172
+assignb T174 'L'
+add T175 T96 38
+# Copy from "T174" to "T175"
+assignb T175[0] T174
+assignb T176 ' '
+add T177 T96 39
+# Copy from "T176" to "T177"
+assignb T177[0] T176
+assignb T178 'Q'
+add T179 T96 40
+# Copy from "T178" to "T179"
+assignb T179[0] T178
+assignb T180 'U'
+add T181 T96 41
+# Copy from "T180" to "T181"
+assignb T181[0] T180
+assignb T182 'E'
+add T183 T96 42
+# Copy from "T182" to "T183"
+assignb T183[0] T182
+assignb T184 ' '
+add T185 T96 43
+# Copy from "T184" to "T185"
+assignb T185[0] T184
+assignb T186 '0'
+add T187 T96 44
+# Copy from "T186" to "T187"
+assignb T187[0] T186
+assignw T188 T97[0]
+print T188
 readf f9
-add x__T10 BASE 0
-# Copy from "f9" to "x__T10"
-assignw x__T10[0] f9
+add n__T189 BASE 20
+# Copy from "f9" to "n__T189"
+assignw n__T189[0] f9
 # Code to calculate parameters
-add x__T11 BASE 0
-assignw f10 x__T11[0]
+add n__T190 BASE 20
+assignw f10 n__T190[0]
 # Push parameters
-param T12 0
-# Copy from "f10" to "T12"
-assignw T12[0] f10
+param T191 0
+# Copy from "f10" to "T191"
+assignw T191[0] f10
 call freturn__f11 heron__0
-add y__T13 BASE 4
-# Copy from "freturn__f11" to "y__T13"
-assignw y__T13[0] freturn__f11
-add y__T14 BASE 4
-assignw f12 y__T14[0]
-printf f12
+printf freturn__f11
+@label if_out__L8
+goto while_start__L5
+@label while_out__L6
 @label main_end__L4
-@endfunction 8
+@endfunction 24
 @label endProgram
