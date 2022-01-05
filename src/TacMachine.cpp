@@ -1827,6 +1827,28 @@ REGISTER_TYPE TacMachine::float_to_reg(float val)
     return converter.reg;
 }
 
+int TacMachine::reg_to_int(REGISTER_TYPE val)
+{
+    union {
+        int i;
+        REGISTER_TYPE reg;
+    } converter;
+
+    converter.reg = val;
+    return converter.i;
+}
+
+REGISTER_TYPE TacMachine::int_to_reg(int val)
+{
+    union {
+        int i;
+        REGISTER_TYPE reg;
+    } converter;
+
+    converter.i = val;
+    return converter.reg;
+}
+
 uint TacMachine::div(uint l_val, uint r_val, uint& out_result)
 {
     if (r_val == 0)
@@ -1835,7 +1857,7 @@ uint TacMachine::div(uint l_val, uint r_val, uint& out_result)
         return FAIL;
     }
     
-    out_result =  l_val / r_val;
+    out_result =  int_to_reg(reg_to_int(l_val) / reg_to_int(r_val));
     return SUCCESS;
 }
 

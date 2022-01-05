@@ -1219,15 +1219,17 @@ namespace TacRunner
             uint is_float(const Value& val, uint & out_actual_val, bool &out_is_float);
             static float reg_to_float(REGISTER_TYPE val);
             static REGISTER_TYPE float_to_reg(float val);
+            static int reg_to_int(REGISTER_TYPE val);
+            static REGISTER_TYPE int_to_reg(int Val);
             static uint add(uint l_val, uint r_val, uint& out_result) 
-                { out_result = l_val + r_val; return SUCCESS; }
+                { out_result = int_to_reg(reg_to_int(l_val) + reg_to_int(r_val)); return SUCCESS; }
             static uint sub(uint l_val, uint r_val, uint& out_result)
-                { out_result = l_val - r_val; return SUCCESS; }
+                { out_result = int_to_reg(reg_to_int(l_val) - reg_to_int(r_val)); return SUCCESS; }
             static uint mult(uint l_val, uint r_val, uint& out_result)
-                { out_result = l_val * r_val; return SUCCESS; }
+                { out_result = int_to_reg(reg_to_int(l_val) * reg_to_int(r_val)); return SUCCESS; }
             static uint div(uint l_val, uint r_val, uint& out_result);
             static uint mod(uint l_val, uint r_val, uint& out_result)
-                { out_result = l_val % r_val; return SUCCESS; }
+                { out_result = int_to_reg(reg_to_int(l_val) % reg_to_int(r_val)); return SUCCESS; }
             static uint addf(uint l_val, uint r_val, uint& out_result)
                 { out_result = float_to_reg(reg_to_float(l_val) + reg_to_float(r_val)); return SUCCESS; }
             static uint subf(uint l_val, uint r_val, uint& out_result)
@@ -1240,17 +1242,17 @@ namespace TacRunner
             static uint neq(uint l_val, uint r_val, uint& out_result)
                 { out_result = l_val != r_val; return SUCCESS; }
             static uint lt(uint l_val, uint r_val, uint& out_result)
-                { out_result = l_val < r_val; return SUCCESS; }
+                { out_result = int_to_reg(reg_to_int(l_val) < reg_to_int(r_val)); return SUCCESS; }
             static uint leq(uint l_val, uint r_val, uint& out_result)
-                { out_result = l_val <= r_val; return SUCCESS; }
+                { out_result = int_to_reg(reg_to_int(l_val) <= reg_to_int(r_val)); return SUCCESS; }
             static uint ltf(uint l_val, uint r_val, uint& out_result)
                 { out_result = reg_to_float(l_val) < reg_to_float(r_val); return SUCCESS; }
             static uint leqf(uint l_val, uint r_val, uint& out_result)
                 { out_result = reg_to_float(l_val) <= reg_to_float(r_val); return SUCCESS; }
             static uint gt(uint l_val, uint r_val, uint& out_result)
-                { out_result = l_val > r_val; return SUCCESS; }
+                { out_result = int_to_reg(reg_to_int(l_val) > reg_to_int(r_val)); return SUCCESS; }
             static uint geq(uint l_val, uint r_val, uint& out_result)
-                { out_result = l_val >= r_val; return SUCCESS; }
+                { out_result = int_to_reg(reg_to_int(l_val) >= reg_to_int(r_val)); return SUCCESS; }
             static uint gtf(uint l_val, uint r_val, uint& out_result)
                 { out_result = reg_to_float(l_val) > reg_to_float(r_val); return SUCCESS; }
             static uint geqf(uint l_val, uint r_val, uint& out_result)
