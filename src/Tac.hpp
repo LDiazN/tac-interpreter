@@ -66,6 +66,8 @@ namespace TacRunner {
      */
     std::string instr_to_str(Instr instr);
 
+    using Access = std::variant<int, std::string>;
+
     /**
      * @brief Variable of a variable
      * 
@@ -73,7 +75,7 @@ namespace TacRunner {
     struct Variable 
     {
         std::string name;
-        int index;
+        Access index;
         bool is_access;
 
         public:
@@ -152,10 +154,10 @@ namespace TacRunner {
     {
     public:
         Tac() { };
-        Tac(Instr &inst);
-        Tac(Instr &inst, const Value argument);
-        Tac(Instr &inst, const Value argument1, const Value argument2);
-        Tac(Instr &inst, const Value argument1, const Value argument2, const Value argument3);
+        Tac(Instr inst);
+        Tac(Instr inst, const Value argument);
+        Tac(Instr inst, const Value argument1, const Value argument2);
+        Tac(Instr inst, const Value argument1, const Value argument2, const Value argument3);
         ~Tac();
         
         std::string str() const;

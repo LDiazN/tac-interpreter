@@ -31,7 +31,7 @@ float           (({frac}{exp_opt})|({dseq}{exp}))
 
 id              ([a-zA-Z_@]+[a-zA-Z_@0-9]*) 
 ascii_char      ([\x00-\x7F])
-string          ((\"{ascii_char}*\"))
+string          (\"(\\.|[^"\\])*\")
 
 single_line_comment #[^\n\r]+?(?:\*\)|[\n\r])
 
@@ -172,11 +172,11 @@ single_line_comment #[^\n\r]+?(?:\*\)|[\n\r])
             }
             
 
-"@fun_begin" {
+"@function" {
                 return TacRunner::Parser::make_METAFUNBEGIN(TacRunner::Instr::METAFUNBEGIN);
              }
 
-"@fun_end"   {
+"@endfunction"   {
                 return TacRunner::Parser::make_METAFUNEND(TacRunner::Instr::METAFUNEND);
              }
 

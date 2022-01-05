@@ -680,8 +680,7 @@ uint MemoryManager::read(std::byte *bytes, size_t count, uint virtual_address)
         return m_heap.read(actual_addr, bytes, count);
         break;
     case MemoryType::STATIC:
-        App::warning("reading from static memory still WIP");
-        return SUCCESS;
+        return m_static.read(actual_addr, bytes, count);
         break;
     case MemoryType::STACK_MEM:
         return m_stack.read(actual_addr, bytes, count);
@@ -967,7 +966,9 @@ uint TacMachine::run_tac_instruction(const Tac &tac)
     case Instr::METALABEL: // ignore
         return SUCCESS;
     case Instr::ASSIGNW:
-        return run_assignw(tac);
+        return run_assign(tac);
+    case Instr::ASSIGNB:
+        return run_assign(tac, 'b');
     case Instr::ADD:
         return run_bin_op(tac, "add");
     case Instr::SUB:
@@ -1010,6 +1011,8 @@ uint TacMachine::run_tac_instruction(const Tac &tac)
         return run_exit(tac);
     case Instr::RETURN:
         return run_return(tac);
+    case Instr::PARAM:
+        return run_param(tac);
     case Instr::CALL:
         return run_call(tac);
     case Instr::PRINTI:
@@ -1028,6 +1031,10 @@ uint TacMachine::run_tac_instruction(const Tac &tac)
         return run_read(tac, 's');
     case Instr::READC:
         return run_read(tac, 'c');
+    case Instr::METAFUNBEGIN:
+        return run_funbegin(tac);
+    case Instr::METAFUNEND:
+        return run_funend(tac);
     default:
         stringstream ss;
         ss << "running instruction not yet implemented: " << tac.str();
@@ -1107,8 +1114,25 @@ uint TacMachine::get_var_value(const Variable &var, REGISTER_TYPE &out_value)
     if (status == FAIL)
         return FAIL;
     
-                            // branchless if
-    out_value = reg_value + (var.is_access) * var.index;        
+
+    // Get index value
+    Value val;
+    if ( std::holds_alternative<int>(var.index))
+        val = Value(std::get<int>(var.index));
+    else 
+        val = Value(Variable{std::get<std::string>(var.index), 0, false});
+    
+    REGISTER_TYPE reg;
+    if(actual_value(val, reg) == FAIL)
+    {
+        stringstream ss;
+        ss << "Can't access to actual value of " << val.str();
+        App::error(ss.str());
+
+        return FAIL;
+    }
+
+    out_value = reg_value + (var.is_access) * reg;        
     return SUCCESS;
 }
 
@@ -1295,9 +1319,10 @@ uint TacMachine::run_static_string(const Tac& tac)
     return m_memory.write((std::byte *) string.c_str(), string.size()+1, mem_pos);
 }
 
-uint TacMachine::run_assignw(const Tac& tac)
+uint TacMachine::run_assign(const Tac& tac, char type)
 {
-    assert(tac.instr() == Instr::ASSIGNW && "Invalid instruction type");
+    assert(type == 'w' || type == 'b');
+    assert((tac.instr() == Instr::ASSIGNW || tac.instr() == Instr::ASSIGNB) && "Invalid instruction type");
     const auto &args = tac.args();
     assert(args.size() == 2 && "Invalid number of arguments in assign instruction");
 
@@ -1312,7 +1337,8 @@ uint TacMachine::run_assignw(const Tac& tac)
                 rvalue_arg.is<Variable>()   || 
                 rvalue_arg.is<char>()       || 
                 rvalue_arg.is<int>()        || 
-                rvalue_arg.is<float>()
+                rvalue_arg.is<float>()      ||
+                rvalue_arg.is<bool>()
             ) && 
             "First argument of assignw should be Variable"
         );
@@ -1323,20 +1349,20 @@ uint TacMachine::run_assignw(const Tac& tac)
         const Variable& rvalue = rvalue_arg.get<Variable>();
 
         if (lvalue.is_access && rvalue.is_access)
-            return move_mem(lvalue, rvalue);
+            return move_mem(lvalue, rvalue, type);
         else if(lvalue.is_access)
-            return store(lvalue, rvalue);
+            return store(lvalue, rvalue, type);
         else if(rvalue.is_access)
-            return load(lvalue, rvalue);
+            return load(lvalue, rvalue, type);
         else 
-            return move(lvalue, rvalue);
+            return move(lvalue, rvalue, type);
     }
     else if (!lvalue_arg.is<std::string>())
     {
         if (lvalue.is_access)
-            return store_inmediate(lvalue, rvalue_arg);
+            return store_inmediate(lvalue, rvalue_arg, type);
         else 
-            return load_inmediate(lvalue, rvalue_arg);
+            return load_inmediate(lvalue, rvalue_arg, type);
     }
 
     assert(false &&& "Invalid type for rvalue in assignw");
@@ -1377,17 +1403,56 @@ REGISTER_TYPE TacMachine::get_inmediate_from_value_w(const Value& val)
     return actual_value;
 }
 
-uint TacMachine::load_inmediate(const Variable& var, const Value& val)
+std::byte TacMachine::get_inmediate_from_value_b(const Value& val)
+{
+    assert(!val.is<std::string>() && !val.is<Variable>());
+
+    union
+    {
+        float f;
+        int i;
+        bool b;
+        char c;
+        std::byte byte;
+    } converter;
+    converter.i = 0;
+
+    if (val.is<int>())
+    {
+        App::warning("Assign of int to byte using assignb");
+        converter.i = val.get<int>();
+    }
+    else if (val.is<char>())
+    {
+        converter.c = val.get<char>();
+    }
+    else if (val.is<bool>())
+    {
+        converter.b = val.get<bool>();
+    }
+    else if (val.is<float>())
+    {
+        App::warning("Assign of float to byte using assignb");
+        converter.f = val.get<float>();
+    }
+
+    return converter.byte;
+}
+
+uint TacMachine::load_inmediate(const Variable& var, const Value& val, char type)
 {
     // Sanity check
     assert(!var.is_access && !val.is<std::string>() && !val.is<Variable>());
 
-    set_register(var.name, get_inmediate_from_value_w(val));
-    
+    if(type == 'w')
+        set_register(var.name, get_inmediate_from_value_w(val));
+    else if(type == 'b')
+        set_register(var.name,(REGISTER_TYPE) get_inmediate_from_value_b(val));
+
     return SUCCESS;
 }
 
-uint TacMachine::load(const Variable& var, const Variable& val)
+uint TacMachine::load(const Variable& var, const Variable& val, char type)
 {
     // Sanity check
     assert(!var.is_access && val.is_access);
@@ -1405,7 +1470,16 @@ uint TacMachine::load(const Variable& var, const Variable& val)
     
     // Try to get value from memory
     REGISTER_TYPE actual_rvalue;
-    status = m_memory.read_word(actual_rvalue, rvalue_addr);
+    if (type == 'w')
+    {
+        status = m_memory.read_word(actual_rvalue, rvalue_addr);
+    }
+    else if (type == 'b')
+    {
+        std::byte b;
+        status = m_memory.read_byte(b, rvalue_addr);
+        actual_rvalue = (REGISTER_TYPE) b;
+    }
     if ( status == FAIL)
     {
         stringstream ss;
@@ -1414,12 +1488,13 @@ uint TacMachine::load(const Variable& var, const Variable& val)
         return FAIL;
     }
 
+
     // Set register to specified value
     set_register(var.name, actual_rvalue);
     return SUCCESS;
 }
 
-uint TacMachine::store_inmediate(const Variable& var, const Value& val)
+uint TacMachine::store_inmediate(const Variable& var, const Value& val, char type)
 {
     // Sanity check
     assert(var.is_access && !val.is<std::string>() && !val.is<Variable>());
@@ -1436,10 +1511,23 @@ uint TacMachine::store_inmediate(const Variable& var, const Value& val)
     }
 
     // Get value from inmediate
-    auto actual_val = get_inmediate_from_value_w(val);
+    if (type == 'w')
+    {
+        auto actual_val = get_inmediate_from_value_w(val);
+        // Write value to memory
+        status = m_memory.write_word(actual_val, lvalue_addr);
+    }
+    else if (type == 'b')
+    {
+        auto actual_val = get_inmediate_from_value_b(val);
+        // Write value to memory
+        status = m_memory.write_byte(actual_val, lvalue_addr);
+    }
+    else 
+    {
+        assert(false);
+    }
 
-    // Write value to memory
-    status = m_memory.write_word(actual_val, lvalue_addr);
     if (status == FAIL)
     {
         stringstream ss;
@@ -1454,7 +1542,7 @@ uint TacMachine::store_inmediate(const Variable& var, const Value& val)
     return SUCCESS;
 }
 
-uint TacMachine::store(const Variable& var, const Variable& val)
+uint TacMachine::store(const Variable& var, const Variable& val, char type)
 {
     // sanity check
     assert(var.is_access && !val.is_access);
@@ -1472,7 +1560,7 @@ uint TacMachine::store(const Variable& var, const Variable& val)
 
     // Value of val is its actual value
     REGISTER_TYPE actual_val;
-    status = get_var_value(val, actual_val);
+    status = access_var_value(val, actual_val);
     if( status == FAIL)
     {
         stringstream ss;
@@ -1483,7 +1571,16 @@ uint TacMachine::store(const Variable& var, const Variable& val)
     }
 
     // Write word to memory
-    status = m_memory.write_word(actual_val, lvalue_addr);
+    if (type == 'w')
+    {
+        status = m_memory.write_word(actual_val, lvalue_addr);
+    }
+    else if (type == 'b')
+    {
+        std::byte b = ((std::byte *)&actual_val)[0]; 
+        status = m_memory.write_byte(b, lvalue_addr);
+    }
+
     if (status == FAIL)
     {
         stringstream ss;
@@ -1499,7 +1596,7 @@ uint TacMachine::store(const Variable& var, const Variable& val)
     return SUCCESS;
 }
 
-uint TacMachine::move_mem(const Variable& var, const Variable& val)
+uint TacMachine::move_mem(const Variable& var, const Variable& val, char type)
 {
     stringstream ss;
     ss << "Four Address Code detected in instruction: " << current_instruction().str();
@@ -1508,14 +1605,14 @@ uint TacMachine::move_mem(const Variable& var, const Variable& val)
     return FAIL;
 }
 
-uint TacMachine::move(const Variable& var, const Variable& val)
+uint TacMachine::move(const Variable& var, const Variable& val, char type)
 {
     // sanity check
     assert(!var.is_access && !val.is_access);
 
     // Try to get addr of lvalue
     REGISTER_TYPE rvalue;
-    auto status = get_var_value(val, rvalue);
+    auto status = access_var_value(val, rvalue);
     if (status == FAIL)
     {
         stringstream ss;
@@ -2001,6 +2098,42 @@ uint TacMachine::run_return(const Tac& tac)
     return SUCCESS;
 }
 
+uint TacMachine::run_param(const Tac& tac)
+{
+    assert(tac.instr() == Instr::PARAM && "Invalid instruction type");
+    const auto& args = tac.args();
+    assert(args.size() == 2 && "Invalid number of arguments in param instruction");
+    
+    const auto& lvalue_arg = args[0];
+    const auto& offset = args[1];
+
+    // lvalue := stack + offset
+    REGISTER_TYPE offset_value;
+    if (actual_value(offset, offset_value) == FAIL)
+    {
+        stringstream ss;
+        ss << "Could not retrieve offset value in " << offset.str();
+        App::error(ss.str());
+
+        return FAIL;
+    }
+
+    // param x offset = x + stack() + offset
+    // Store actual value in provided memory
+    auto const offset_val = Value((int) (offset_value + stack_pointer())); 
+    auto const assign_tac = Tac(Instr::ASSIGNW, lvalue_arg, offset_val);
+
+    if(run_assign(assign_tac) == FAIL)
+    {
+        stringstream ss;
+        ss << "Could not assign next param position to " << lvalue_arg.str();
+        App::error(ss.str());
+        return FAIL;
+    }
+
+    return SUCCESS;
+}
+
 uint TacMachine::run_call(const Tac& tac)
 {
     assert(tac.instr() == Instr::CALL && "Invalid instruction type");
@@ -2192,6 +2325,7 @@ uint TacMachine::run_funbegin(const Tac&tac)
     assert(stack_size_arg.is<int>());
     auto stack_size = stack_size_arg.get<int>();
 
+    m_frame_pointer = stack_pointer();
     m_memory.set_stack_pointer(stack_pointer() + stack_size);
 
     return SUCCESS;

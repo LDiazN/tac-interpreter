@@ -188,7 +188,7 @@ namespace TacRunner
              * @brief Read a word from the given 'virtual_position' into 'outword'
              * 
              * @param virtual_position where to read the word from
-             * @param out_word         where to write the word value
+             * @param out_word         where to read the word value
              * @return uint success status, 0 un success, 1 on failure
              */
             inline uint read_word(uint virtual_position, REGISTER_TYPE &out_word) { return read(virtual_position, (std::byte *) &out_word, sizeof(out_word)); }
@@ -705,6 +705,15 @@ namespace TacRunner
         inline uint write_word(REGISTER_TYPE word, uint virtual_address) { return write((std::byte *) &word, sizeof(word), virtual_address); }
 
         /**
+         * @brief Write a byte into the given virtual address
+         * 
+         * @param byte byte to write
+         * @param virtual_address address where to copy this byte
+         * @return uint sucess status, 0 on success, 1 on failure
+         */
+        inline uint write_byte(std::byte byte, uint virtual_address) { return write(&byte, sizeof(byte), virtual_address); }
+
+        /**
          * @brief Read "count" bytes of memory from "virtual_address" to "bytes" buffer
          * 
          * @param bytes Buffer where the data will be copied into
@@ -722,6 +731,15 @@ namespace TacRunner
          * @return uint success status, 0 on success, 1 on failure
          */
         inline uint read_word(REGISTER_TYPE& out_word, uint virtual_address) { return read((std::byte *) &out_word, sizeof(out_word), virtual_address); }
+
+        /**
+         * @brief Read a byte from the given 'virtual_position' into 'out_byte'
+         * 
+         * @param virtual_position where to read the byte from
+         * @param out_byte         where to read the byte value
+         * @return uint success status, 0 un success, 1 on failure
+         */
+        inline uint read_byte(std::byte &out_byte, uint virtual_position) { return read(&out_byte, sizeof(out_byte), virtual_position); }
 
         /**
          * @brief Move 'count' bytes from 'src' to 'dest' 
@@ -1170,7 +1188,7 @@ namespace TacRunner
          *        when a return instruction is called
          * 
          */
-        stack<BackUp> m_back_ups;
+        std::stack<BackUp> m_back_ups;
 
         private:
         // The following section contains functions for every instruction, every function
@@ -1178,7 +1196,7 @@ namespace TacRunner
 
         uint run_staticv(const Tac &tac);
         uint run_static_string(const Tac &tac);
-        uint run_assignw(const Tac &tac);
+        uint run_assign(const Tac &tac, char type = 'w'); // type if word ord byte, w for word, b for byte
         //  Assign functions
 
             /**
@@ -1188,13 +1206,14 @@ namespace TacRunner
              * @return REGISTER_TYPE Resulting word
              */
             REGISTER_TYPE get_inmediate_from_value_w(const Value& val);
+            std::byte get_inmediate_from_value_b(const Value& val);
 
-            uint load_inmediate(const Variable& var, const Value& val);     // x = 1
-            uint load(const Variable& var, const Variable& val);            // x = y[24];
-            uint store_inmediate(const Variable& var, const Value& val);    // x[10] = 24;
-            uint store(const Variable& var, const Variable& val);           // x[10] = y
-            uint move_mem(const Variable& var, const Variable& val);        // x[10] = y[24];
-            uint move(const Variable& var, const Variable& val);            // x = y;
+            uint load_inmediate(const Variable& var, const Value& val, char type = 'w');     // x = 1
+            uint load(const Variable& var, const Variable& val, char type = 'w');            // x = y[24];
+            uint store_inmediate(const Variable& var, const Value& val, char type = 'w');    // x[10] = 24;
+            uint store(const Variable& var, const Variable& val, char type = 'w');           // x[10] = y
+            uint move_mem(const Variable& var, const Variable& val, char type = 'w');        // x[10] = y[24];
+            uint move(const Variable& var, const Variable& val, char type = 'w');            // x = y;
         uint run_bin_op(const Tac& tac, const std::string& opr_type, bool type_matters = true); 
             // if this value is a float, and return the actual value, return success status
             uint is_float(const Value& val, uint & out_actual_val, bool &out_is_float);
@@ -1241,11 +1260,11 @@ namespace TacRunner
         uint run_goif(const Tac& tac, bool is_negated = false);
         uint run_malloc(const Tac& tac);
         uint run_memcpy(const Tac& tac);
-        uint run_free(const Tac&tac);
+        uint run_free(const Tac& tac);
         uint run_exit(const Tac& tac);
         uint run_return(const Tac& tac);
+        uint run_param(const Tac& tac);
         uint run_call(const Tac& tac);
-        uint run_return(const Tac& tac);
         uint run_print(const Tac& tac, char type); // type is: i for int, c for char, f for float, s for string
         uint run_read(const Tac& tac, char type); // type is: i for int, c for char, f for float, s for string
         uint run_funbegin(const Tac&tac);

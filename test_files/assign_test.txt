@@ -4,8 +4,14 @@ assignw b 'c'
 malloc w 20
 assignw w[0] 1
 assignw w[4] 1
+assignw m 8
+assignw w[m] 1
 assignw z w[0]
 assignw z w[8]
+assignb w[9] 1
+assignb w[10] 1
+assignb w[11] 1
+assignb w[12] 1
 assignw x z
+assignw p w[m]
 # assignw w[0] w[4] # will raise error
-

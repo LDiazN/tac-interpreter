@@ -329,11 +329,11 @@ T       : METALABEL ID
                 }
 
 F       :   METAFUNBEGIN ID INTEGER NEWLINE 
-            Text NEWLINE 
-            METAFUNEND INTEGER NEWLINE 
+            Text
+            METAFUNEND INTEGER 
                 {
                     TacRunner::Tac t1($1, TacRunner::Value($2), TacRunner::Value($3));
-                    TacRunner::Tac t2($7, TacRunner::Value($8));
+                    TacRunner::Tac t2($6, TacRunner::Value($7));
                     auto instrs = $5;
                     std::vector<TacRunner::Tac> new_instrs;
                     // Create a new vector and reserve enough space 
@@ -347,6 +347,8 @@ F       :   METAFUNBEGIN ID INTEGER NEWLINE
                     // Copy intermediate instructions
                     for(auto &i : instrs)
                         new_instrs.push_back(i);
+
+                    new_instrs.push_back(t1);
                     
                     $$ = new_instrs;
                 }
@@ -368,10 +370,9 @@ Constant : BOOL    {
                         $$ = b;
                     }
 
-Access : ID LBRACKET INTEGER RBRACKET 
-            {
-                $$ = TacRunner::Variable{$1, $3, true};
-            }
+Access  : ID LBRACKET INTEGER RBRACKET { $$ = TacRunner::Variable{$1, $3, true}; }
+        | ID LBRACKET ID RBRACKET { $$ = TacRunner::Variable{$1, $3, true}; }
+        
 Variable : ID { $$ = TacRunner::Variable{$1, 0, false}; } 
 
 LValue  : Variable { $$ = TacRunner::Value($1); }

@@ -1,0 +1,8 @@
+@string s "hola mundo"
+@string s2 "casi termino"
+call x f
+print s2
+exit 0
+@fun_begin f 0
+print s
+@fun_end 0

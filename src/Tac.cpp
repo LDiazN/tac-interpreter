@@ -141,8 +141,12 @@ std::string Variable::str() const
     std::stringstream ss;
     ss << name;
     if (is_access)
-        ss << "[" << index << "]";
-    
+    {
+        if(std::holds_alternative<int>(index))
+            ss << "[" << std::get<int>(index) << "]";
+        else 
+            ss << "[" << std::get<std::string>(index) << "]";
+    }
     return ss.str();
 }
 
@@ -155,7 +159,11 @@ std::string Value::str() const
     {
         auto v = get<Variable>();
         if (v.is_access) // Format as name[index]
-            ss << v.name << "[" << v.index << "]";
+            if (std::holds_alternative<int>(v.index))
+                ss << v.name << "[" << std::get<int>(v.index) << "]";
+            else 
+                ss << v.name << "[" << std::get<std::string>(v.index) << "]";
+
         else             // Format as name
             ss << v.name;
     }
@@ -192,21 +200,21 @@ std::string Value::str() const
     return ss.str();
 }
 
-Tac::Tac(Instr &inst) 
+Tac::Tac(Instr inst) 
     : m_instr(inst)
     , m_args({})
 { }
 
-Tac::Tac(Instr &inst, const Value argument)
+Tac::Tac(Instr inst, const Value argument)
     : m_instr(inst)
     , m_args({argument})
 { }
 
-Tac::Tac(Instr &inst, const Value argument1, const Value argument2)
+Tac::Tac(Instr inst, const Value argument1, const Value argument2)
     : m_instr(inst)
     , m_args({argument1, argument2})
 { }
-Tac::Tac(Instr &inst, const Value argument1, const Value argument2, const Value argument3)
+Tac::Tac(Instr inst, const Value argument1, const Value argument2, const Value argument3)
     : m_instr(inst)
     , m_args({argument1, argument2, argument3})
 { }
