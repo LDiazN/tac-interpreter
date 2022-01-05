@@ -303,7 +303,7 @@ uint VirtualStack::write(uint virtual_position, const std::byte *bytes, size_t c
         stringstream ss;
         ss << "Writing in memory segment possibly out of the current active stack memory. ";
         ss << "Starting from 0x" << std::hex << virtual_position << " to 0x" << std::hex << last_pos;
-        App::warning(ss.str());
+        // App::warning(ss.str());
     }
 
     // Write memory 
@@ -424,7 +424,7 @@ uint VirtualStaticMemory::read(uint virtual_position, std::byte *bytes, size_t c
     // check if the memory segment is a valid one
     auto status = is_valid(virtual_position, count);
     auto last_pos = virtual_position + count - 1;
-    if (status == FAIL)
+    if (!status)
     {
         stringstream ss;
         ss << "[segmentation fault] Trying to read memory out of bounds of heap. ";
@@ -810,11 +810,12 @@ uint MemoryManager::mem_pos(uint global_position, byte * &out_actual_mem) const
 TacMachine::TacMachine(Program program)
     : m_program(program)
     , m_program_counter(0)
-    , m_frame_pointer(0)
     , m_memory()
     , m_status(Status::NOT_STARTED)
     , m_registers()
 {
+    m_frame_pointer = stack_pointer();
+
     // initialize instruction counting
     reset_instruction_count();
 
