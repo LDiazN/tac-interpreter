@@ -812,9 +812,12 @@ TacMachine::TacMachine(Program program)
     , m_program_counter(0)
     , m_memory()
     , m_status(Status::NOT_STARTED)
-    , m_registers()
 {
     m_frame_pointer = stack_pointer();
+
+    // push global scope to callstack
+    m_callstack.push_back(CallStackData{"<GLOBAL SCOPE>", Registers(), 0});
+
 
     // initialize instruction counting
     reset_instruction_count();
@@ -867,7 +870,9 @@ void TacMachine::set_register(const std::string &reg_name, REGISTER_TYPE value)
         return;
     }
 
-    m_registers[reg_name] = value;
+    // Otherwise, set register in first stack entry
+    assert(m_callstack.size() != 0);
+    m_callstack.back().func_regs[reg_name] = value;
 }
 
 uint TacMachine::get_register(const std::string &reg_name, REGISTER_TYPE &out_value)
@@ -884,20 +889,26 @@ uint TacMachine::get_register(const std::string &reg_name, REGISTER_TYPE &out_va
         return SUCCESS;
     }
 
-    auto it = m_registers.find(reg_name);
-    if (it == m_registers.end()) // could not find it
+    for(size_t i = m_callstack.size(); i --> 0;)
     {
-        stringstream ss;
-        ss << "Trying to access invalid register: '" << reg_name << "'" << std::endl;
-        App::error(ss.str());
+        auto const& regs = m_callstack[i].func_regs;
 
-        return FAIL;
-    }
+        // Search for first occurence of the provided register
+        auto it = regs.find(reg_name);
+        if (it == regs.end()) // could not find it
+            // keep searching 
+            continue;
+        
+        auto &[_, value] = *it;
+        out_value = value;
+        return SUCCESS;
+    }    
+    
+    stringstream ss;
+    ss << "Trying to access invalid register: '" << reg_name << "'" << std::endl;
+    App::error(ss.str());
 
-    auto &[_, value] = *it;
-
-    out_value = value;
-    return SUCCESS;
+    return FAIL;
 }
 
 uint TacMachine::goto_label(std::string label_name)
@@ -1187,7 +1198,7 @@ uint TacMachine::actual_value(const Value& val, REGISTER_TYPE& out_actual_val)
     return SUCCESS;
 }
 
-std::string TacMachine::str(bool show_memory, bool show_labels, bool show_registers)
+std::string TacMachine::str(bool show_memory, bool show_labels, bool show_registers, bool show_callstack)
 {
     std::stringstream ss;
     ss << "-- << TAC MACHINE >> ----------------------------------------" << std::endl;
@@ -1197,17 +1208,22 @@ std::string TacMachine::str(bool show_memory, bool show_labels, bool show_regist
         ( m_program_counter < m_program.size() ? m_program[m_program_counter].str() : "<Program Finished>")
         << std::endl;
     ss << "- Program Status: " << show_status(m_status) << std::endl;
-    ss << "- Currently active registers: " << m_registers.size() << std::endl;
+    ss << "- Currently active callstack: " << m_callstack.size() << std::endl;
 
     if (show_registers)
     {
-        ss << "- Registers: " << std::endl;
-        if (m_registers.empty())
-            ss << "\t<No registers to show>";
-        else
-            for(auto &[name, value] : m_registers)
-                ss << "\t- " << name << " = 0x" << std::hex << value << std::endl;
-        ss << std::endl;
+        for (auto const& call_data : m_callstack)
+        {
+            ss << "\t- " << call_data.func_name;
+            ss << "\t\t- Registers: " << std::endl;
+            auto const& regs = call_data.func_regs;
+            if (regs.empty())
+                ss << "\t\t<No registers to show>";
+            else
+                for(auto &[name, value] : regs)
+                    ss << "\t\t\t- " << name << " = 0x" << std::hex << value << std::endl;
+                ss << std::endl;
+        }
     }
 
     if(show_labels)
@@ -1222,6 +1238,14 @@ std::string TacMachine::str(bool show_memory, bool show_labels, bool show_regist
         }
     }
 
+    if(show_callstack)
+    {
+        ss << "- Callstack: ";
+        for (auto const& call : m_callstack)
+            ss << "\t[ " << call.func_name << " ] at line " << call.line_num;
+    }
+
+    
     ss << m_memory.str(show_memory)  << std::endl;
 
     return ss.str();
@@ -2138,6 +2162,10 @@ uint TacMachine::run_return(const Tac& tac)
     }
 
     auto const& back_up = last_back_up();
+    
+    // pop last stack
+    m_callstack.pop_back();
+
     // Write actual value and check for errors
     set_register(back_up.next_return_reg, reg);
 
@@ -2373,13 +2401,21 @@ uint TacMachine::run_funbegin(const Tac&tac)
     const auto &args = tac.args();
     assert(args.size() == 2 && "Invalid number of arguments in @function instruction");
     const auto& stack_size_arg = args[1];
+    const auto& fun_name_arg = args[0];
 
-    // assume stack size if int
+    // assume stack size is int
     assert(stack_size_arg.is<int>());
     auto stack_size = stack_size_arg.get<int>();
 
+    // assume fun_name_arg is string
+    assert(fun_name_arg.is<std::string>());
+    auto const& fun_name = fun_name_arg.get<std::string>();
+
     m_frame_pointer = stack_pointer();
     m_memory.set_stack_pointer(stack_pointer() + stack_size);
+
+    // Push current callstack
+    m_callstack.push_back(CallStackData{fun_name, Registers(), frame_pointer()});
 
     return SUCCESS;
 }
@@ -2396,5 +2432,6 @@ uint TacMachine::run_funend(const Tac& tac)
         return FAIL;
     }
 
+    m_callstack.pop_back();
     return SUCCESS;
 }   

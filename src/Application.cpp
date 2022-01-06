@@ -81,13 +81,24 @@ namespace TacRunner
         // ^^ TESTING AREA, DELETE LATER --------------------------------------------------------------------------------
         // Display summary 
         if (machine.status() == TacMachine::Status::ERROR)
-            App::error("Program execution failed");
+        {
+            stringstream ss;
+            ss << "Program execution failed at line " << machine.program_counter();
+            App::error(ss.str());
+
+        }
         else if(machine.status() == TacMachine::Status::FINISHED)
             App::success("Program execution successful");
 
-        App::trace("Resulting state summary: ");
         if(!m_config.quiet)
-            cout << machine.str(true, true, true) << endl;
+        {
+            App::trace("Resulting state summary: ");
+            cout << machine.str(
+                m_config.memory, 
+                m_config.labels, 
+                m_config.registers, 
+                m_config.callstack) << endl;
+        }
     }
 
     std::string App::help_msg() const
@@ -150,13 +161,30 @@ namespace TacRunner
         // Check if should be quiet
         bool quiet = std::find(args.begin(), args.end(), App::quiet()) != args.end();
 
+        // Check if should show callstack
+        bool callstack = std::find(args.begin(), args.end(), App::callstack()) != args.end();
+
+        // Check if should show memory
+        bool memory = std::find(args.begin(), args.end(), App::memory()) != args.end();
+
+        // Check if should show registers
+        bool registers = std::find(args.begin(), args.end(), App::registers()) != args.end();
+
+        // Check if should show labels
+        bool labels = std::find(args.begin(), args.end(), App::labels()) != args.end();
+
+
         // Tell the app to run some code
         actions.push_back(Action::RUN_TAC_CODE);
 
         // This is the only field for now
         out_config.filename = filename;
         out_config.actions.swap(actions);
-        out_config.quiet = quiet;
+        out_config.quiet        = quiet;
+        out_config.callstack    = callstack;
+        out_config.memory       = memory;
+        out_config.registers    = registers;
+        out_config.labels       = labels;
 
         return SUCCESS;
     }

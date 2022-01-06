@@ -957,6 +957,19 @@ namespace TacRunner
     };
 
     /**
+     * @brief Data representing relevant values for the actually running function
+     * 
+     */
+    struct CallStackData
+    {
+        std::string func_name;
+        Registers func_regs;
+        uint line_num;
+    };
+
+    using CallStack = std::vector<CallStackData>;
+
+    /**
      * @brief This class represents a Tac machine capable of running tac code
      *        as if it was a special processor for tac code
      * 
@@ -1046,7 +1059,7 @@ namespace TacRunner
          *                    when there's much memory allocated
          * @return std::string human readable string
          */
-        std::string str(bool show_memory = false, bool show_labels = false, bool show_registers = false);
+        std::string str(bool show_memory = false, bool show_labels = false, bool show_registers = false, bool show_callstack = false);
 
         static std::string show_status(Status status);
 
@@ -1175,7 +1188,7 @@ namespace TacRunner
          * @brief Registers identified by name and their corresponding value
          * 
          */
-        Registers m_registers;
+        CallStack m_callstack;
 
         /**
          * @brief Status code on exit of the program

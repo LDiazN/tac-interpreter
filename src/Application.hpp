@@ -42,6 +42,10 @@ namespace TacRunner
         std::string filename; // file where to parse the tac code
         std::vector<Action> actions; // Which actions should the application perform
         bool quiet;
+        bool callstack;
+        bool memory;
+        bool registers;
+        bool labels;
 
         /**
          * @brief Create a config from a list of arguments,
@@ -111,6 +115,34 @@ namespace TacRunner
              * @return std::string 
              */
             static inline std::string quiet() { return "--quiet"; }
+
+            /**
+             * @brief Property with callstack flag
+             * 
+             * @return std::string 
+             */
+            static inline std::string callstack()   { return "--callstack"; }
+
+            /**
+             * @brief Property with memory flag
+             * 
+             * @return std::string 
+             */
+            static inline std::string memory()      { return "--memory"; }
+
+            /**
+             * @brief Property with registers flag
+             * 
+             * @return std::string 
+             */
+            static inline std::string registers()   { return "--registers"; }
+
+            /**
+             * @brief Property with labels flag
+             * 
+             * @return std::string 
+             */
+            static inline std::string labels()      { return "--labels"; }
 
             /**
              * @brief Los a message to stderr formated as error
