@@ -81,6 +81,8 @@
 %token <TacRunner::Instr> NEG    "neg";
 %token <TacRunner::Instr> EQ     "eq";
 %token <TacRunner::Instr> NEQ    "neq";
+%token <TacRunner::Instr> AND    "and";
+%token <TacRunner::Instr> OR     "or";
 %token <TacRunner::Instr> LT     "lt";
 %token <TacRunner::Instr> LEQ    "leq";
 %token <TacRunner::Instr> GT     "gt";
@@ -234,6 +236,14 @@ T       : METALABEL ID
                     $$ = TacRunner::Tac($1, TacRunner::Value($2), $3, $4);
                 }
         | NEQ     Variable Value Value 
+                {
+                    $$ = TacRunner::Tac($1, TacRunner::Value($2), $3, $4);
+                }
+        | AND    Variable Value Value 
+                {
+                    $$ = TacRunner::Tac($1, TacRunner::Value($2), $3, $4);
+                }
+        | OR     Variable Value Value 
                 {
                     $$ = TacRunner::Tac($1, TacRunner::Value($2), $3, $4);
                 }

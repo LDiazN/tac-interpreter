@@ -56,6 +56,12 @@ std::string TacRunner::instr_to_str(Instr instr)
     case Instr::NEQ:
         return "neq";
         break;
+    case Instr::AND:
+        return "and";
+        break;
+    case Instr::OR:
+        return "or";
+        break;
     case Instr::LT:
         return "lt";
         break;

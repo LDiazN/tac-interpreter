@@ -1221,6 +1221,8 @@ namespace TacRunner
             static REGISTER_TYPE float_to_reg(float val);
             static int reg_to_int(REGISTER_TYPE val);
             static REGISTER_TYPE int_to_reg(int Val);
+            static bool reg_to_bool(REGISTER_TYPE val);
+            static REGISTER_TYPE bool_to_reg(bool Val);
             static uint add(uint l_val, uint r_val, uint& out_result) 
                 { out_result = int_to_reg(reg_to_int(l_val) + reg_to_int(r_val)); return SUCCESS; }
             static uint sub(uint l_val, uint r_val, uint& out_result)
@@ -1241,6 +1243,10 @@ namespace TacRunner
                 { out_result = l_val == r_val; return SUCCESS; }
             static uint neq(uint l_val, uint r_val, uint& out_result)
                 { out_result = l_val != r_val; return SUCCESS; }
+            static uint and_op(uint l_val, uint r_val, uint& out_result)
+                { out_result = bool_to_reg(reg_to_bool(l_val) && reg_to_bool(r_val)); return SUCCESS; }
+            static uint or_op(uint l_val, uint r_val, uint& out_result)
+                { out_result = bool_to_reg(reg_to_bool(l_val) || reg_to_bool(r_val)); return SUCCESS; }
             static uint lt(uint l_val, uint r_val, uint& out_result)
                 { out_result = int_to_reg(reg_to_int(l_val) < reg_to_int(r_val)); return SUCCESS; }
             static uint leq(uint l_val, uint r_val, uint& out_result)

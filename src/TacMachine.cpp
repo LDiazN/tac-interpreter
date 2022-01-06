@@ -988,6 +988,10 @@ uint TacMachine::run_tac_instruction(const Tac &tac)
         return run_bin_op(tac, "eq", false);
     case Instr::NEQ:
         return run_bin_op(tac, "neq", false);
+    case Instr::AND:
+        return run_bin_op(tac, "and", false);
+    case Instr::OR:
+        return run_bin_op(tac, "or", false);
     case Instr::LT:
         return run_bin_op(tac, "lt");
     case Instr::LEQ:
@@ -1718,6 +1722,10 @@ uint TacMachine::run_bin_op(const Tac& tac, const std::string& opr_type, bool ty
         opr = eq;
     else if (opr_type == "neq")
         opr = neq;
+    else if (opr_type == "and")
+        opr = and_op;
+    else if (opr_type == "or")
+        opr = or_op;
     else if (opr_type == "lt" && l_is_float)
         opr = ltf;
     else if (opr_type == "lt")
@@ -1846,6 +1854,28 @@ REGISTER_TYPE TacMachine::int_to_reg(int val)
     } converter;
 
     converter.i = val;
+    return converter.reg;
+}
+
+bool TacMachine::reg_to_bool(REGISTER_TYPE val)
+{
+    union {
+        bool b;
+        REGISTER_TYPE reg;
+    } converter;
+
+    converter.reg = val;
+    return converter.b;
+}
+
+REGISTER_TYPE TacMachine::bool_to_reg(bool val)
+{
+    union {
+        bool b;
+        REGISTER_TYPE reg;
+    } converter;
+
+    converter.b = val;
     return converter.reg;
 }
 

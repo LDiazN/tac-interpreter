@@ -1,0 +1,6 @@
+assignb x True
+assignb y False
+and z x y 
+or w x y
+printi z
+printi w

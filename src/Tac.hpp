@@ -31,6 +31,8 @@ namespace TacRunner {
         NEG,
         EQ,
         NEQ,
+        AND,
+        OR,
         LT,
         LEQ,
         GT,

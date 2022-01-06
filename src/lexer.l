@@ -85,6 +85,12 @@ single_line_comment #[^\n\r]+?(?:\*\)|[\n\r])
 "neq"       {
                 return TacRunner::Parser::make_NEQ(TacRunner::Instr::NEQ);
             }
+"and"       {
+                return TacRunner::Parser::make_AND(TacRunner::Instr::AND);
+            }
+"or"        {
+                return TacRunner::Parser::make_OR(TacRunner::Instr::OR);
+            }
 "lt"        {
                 return TacRunner::Parser::make_LT(TacRunner::Instr::LT);
             }
