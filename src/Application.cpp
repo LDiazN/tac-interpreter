@@ -173,6 +173,36 @@ namespace TacRunner
         // Check if should show labels
         bool labels = std::find(args.begin(), args.end(), App::labels()) != args.end();
 
+        // Check if stack memory flag is provided
+        uint stack_mem_bytes;
+        for(size_t i = 0; i < args.size(); i++)
+        {
+            auto const& arg = args[i];
+            if(arg != App::stack_mem_bytes())
+                continue;
+            
+            // Check for enough args
+            if (i == args.size() - 1)
+            {
+                stringstream ss;
+                ss << "Missing amount of bytes arg in " << App::stack_mem_bytes() << " flag";
+                App::error(ss.str());
+                return FAIL;
+            }
+
+            // Check if following arg is a valid int
+            try
+            {
+                stack_mem_bytes = stoi(args[i+1]);
+            }
+            catch(std::invalid_argument&)
+            {
+                stringstream ss;
+                ss << "Invalid amount of bytes for flag " << App::stack_mem_bytes() << ". Provided: " << args[i+1];
+                App::error(ss.str());
+            }
+        
+        }
 
         // Tell the app to run some code
         actions.push_back(Action::RUN_TAC_CODE);
@@ -185,6 +215,7 @@ namespace TacRunner
         out_config.memory       = memory;
         out_config.registers    = registers;
         out_config.labels       = labels;
+        out_config.show_bytes_of_stack_mem = stack_mem_bytes;
 
         return SUCCESS;
     }

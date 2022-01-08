@@ -340,7 +340,7 @@ uint VirtualStack::read(uint virtual_position, std::byte *bytes, size_t count)
     return SUCCESS;
 }
 
-std::string VirtualStack::str(bool show_memory) const
+std::string VirtualStack::str(bool show_memory, uint stack_mem_bytes) const
 {
     std::stringstream ss;
     ss << "[ Stack Memory ]"            << std::endl;
@@ -354,7 +354,10 @@ std::string VirtualStack::str(bool show_memory) const
     {
         ss << "\t- Memory: " << std::endl;
         ss << "[ ";
-        for(size_t i = 0 ;  i < m_stack_pointer; i++)
+        
+        auto const max_bytes_to_print = stack_mem_bytes != 0 ? stack_mem_bytes : m_stack_pointer;
+
+        for(size_t i = 0 ;  i < max_bytes_to_print; i++)
             ss << "0x" << std::hex << (uint) m_memory[i] << ", ";
 
         ss << " ]" << std::endl;
@@ -561,11 +564,11 @@ uint MemoryManager::type_of(uint virtual_position, MemoryManager::MemoryType &ou
     return type_and_actual_pos_of(virtual_position, out_mem_type, p);
 }
 
-std::string MemoryManager::str(bool show_memory) const
+std::string MemoryManager::str(bool show_memory, uint stack_mem_bytes) const
 {
     std::stringstream ss;
     ss << m_static.str(show_memory) << std::endl;
-    ss << m_stack.str(show_memory) << std::endl;
+    ss << m_stack.str(show_memory, stack_mem_bytes) << std::endl;
     ss << m_heap.str(show_memory) << std::endl;
 
     return ss.str();
@@ -1198,7 +1201,7 @@ uint TacMachine::actual_value(const Value& val, REGISTER_TYPE& out_actual_val)
     return SUCCESS;
 }
 
-std::string TacMachine::str(bool show_memory, bool show_labels, bool show_registers, bool show_callstack)
+std::string TacMachine::str(bool show_memory, bool show_labels, bool show_registers, bool show_callstack, uint stack_mem_bytes)
 {
     std::stringstream ss;
     ss << "-- << TAC MACHINE >> ----------------------------------------" << std::endl;
@@ -1246,7 +1249,7 @@ std::string TacMachine::str(bool show_memory, bool show_labels, bool show_regist
     }
 
     
-    ss << m_memory.str(show_memory)  << std::endl;
+    ss << m_memory.str(show_memory, stack_mem_bytes)  << std::endl;
 
     return ss.str();
 }

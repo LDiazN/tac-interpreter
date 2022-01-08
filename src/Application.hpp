@@ -46,6 +46,9 @@ namespace TacRunner
         bool memory;
         bool registers;
         bool labels;
+        uint show_bytes_of_stack_mem; 
+        // By default, the stack will only print memory that is active, 
+        // provide this field (!= 0) to make it print the specified ammount of bytes
 
         /**
          * @brief Create a config from a list of arguments,
@@ -143,6 +146,14 @@ namespace TacRunner
              * @return std::string 
              */
             static inline std::string labels()      { return "--labels"; }
+
+            /**
+             * @brief Use this flag to ask the interpreter to show the specified 
+             * amount of bytes from the stack, active or not.
+             * 
+             * @return std::string 
+             */
+            static inline std::string stack_mem_bytes()      { return "--stack-mem-bytes"; }
 
             /**
              * @brief Los a message to stderr formated as error

@@ -419,7 +419,7 @@ namespace TacRunner
          *                    allocated
          * @return std::string human readable representation
          */
-        std::string str(bool show_memory = false) const;
+        std::string str(bool show_memory = false, uint stack_mem_bytes = 0) const;
 
         private:
 
@@ -682,7 +682,7 @@ namespace TacRunner
              *                    large segments of memory are stored
              * @return std::string string representation
              */
-        std::string str(bool show_memory = false) const;
+        std::string str(bool show_memory = false, uint stack_mem_bytes = 0) const;
 
         /**
          * @brief Set 'count' bytes from 'bytes' to 'virtual_address', and return
@@ -1059,7 +1059,7 @@ namespace TacRunner
          *                    when there's much memory allocated
          * @return std::string human readable string
          */
-        std::string str(bool show_memory = false, bool show_labels = false, bool show_registers = false, bool show_callstack = false);
+        std::string str(bool show_memory = false, bool show_labels = false, bool show_registers = false, bool show_callstack = false, uint stack_mem_bytes = 0);
 
         static std::string show_status(Status status);
 
