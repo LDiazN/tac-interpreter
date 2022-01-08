@@ -350,7 +350,7 @@ std::string VirtualStack::str(bool show_memory, uint stack_mem_bytes) const
     ss << "\t- Read Operations: "       << std::dec << m_read_count     << std::endl;
     ss << "\t- Write Operations: "      << std::dec << m_write_count    << std::endl;
     
-    if (show_memory)
+    if (show_memory || stack_mem_bytes != 0)
     {
         ss << "\t- Memory: " << std::endl;
         ss << "[ ";
