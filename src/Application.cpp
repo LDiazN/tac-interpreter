@@ -97,7 +97,8 @@ namespace TacRunner
                 m_config.memory, 
                 m_config.labels, 
                 m_config.registers, 
-                m_config.callstack) << endl;
+                m_config.callstack, 
+                m_config.show_bytes_of_stack_mem) << endl;
         }
     }
 
