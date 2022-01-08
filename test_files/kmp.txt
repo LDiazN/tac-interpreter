@@ -1,0 +1,864 @@
+call ___main main__0
+exit 0
+@function kmp__0 100
+assignw T0 STACK
+add STACK STACK 23
+add T1 BASE 0
+assignw T1[0] T0
+assignw T1[4] 23
+assignb T2 'D'
+add T3 T0 0
+# Copy from "T2" to "T3"
+assignb T3[0] T2
+assignb T4 'E'
+add T5 T0 1
+# Copy from "T4" to "T5"
+assignb T5[0] T4
+assignb T6 ' '
+add T7 T0 2
+# Copy from "T6" to "T7"
+assignb T7[0] T6
+assignb T8 'E'
+add T9 T0 3
+# Copy from "T8" to "T9"
+assignb T9[0] T8
+assignb T10 'L'
+add T11 T0 4
+# Copy from "T10" to "T11"
+assignb T11[0] T10
+assignb T12 ' '
+add T13 T0 5
+# Copy from "T12" to "T13"
+assignb T13[0] T12
+assignb T14 'T'
+add T15 T0 6
+# Copy from "T14" to "T15"
+assignb T15[0] T14
+assignb T16 'A'
+add T17 T0 7
+# Copy from "T16" to "T17"
+assignb T17[0] T16
+assignb T18 'M'
+add T19 T0 8
+# Copy from "T18" to "T19"
+assignb T19[0] T18
+assignb T20 'A'
+add T21 T0 9
+# Copy from "T20" to "T21"
+assignb T21[0] T20
+assignb T22 'N'
+add T23 T0 10
+# Copy from "T22" to "T23"
+assignb T23[0] T22
+assignb T24 'O'
+add T25 T0 11
+# Copy from "T24" to "T25"
+assignb T25[0] T24
+assignb T26 ' '
+add T27 T0 12
+# Copy from "T26" to "T27"
+assignb T27[0] T26
+assignb T28 'D'
+add T29 T0 13
+# Copy from "T28" to "T29"
+assignb T29[0] T28
+assignb T30 'E'
+add T31 T0 14
+# Copy from "T30" to "T31"
+assignb T31[0] T30
+assignb T32 'L'
+add T33 T0 15
+# Copy from "T32" to "T33"
+assignb T33[0] T32
+assignb T34 ' '
+add T35 T0 16
+# Copy from "T34" to "T35"
+assignb T35[0] T34
+assignb T36 'P'
+add T37 T0 17
+# Copy from "T36" to "T37"
+assignb T37[0] T36
+assignb T38 'A'
+add T39 T0 18
+# Copy from "T38" to "T39"
+assignb T39[0] T38
+assignb T40 'T'
+add T41 T0 19
+# Copy from "T40" to "T41"
+assignb T41[0] T40
+assignb T42 'R'
+add T43 T0 20
+# Copy from "T42" to "T43"
+assignb T43[0] T42
+assignb T44 'O'
+add T45 T0 21
+# Copy from "T44" to "T45"
+assignb T45[0] T44
+assignb T46 'N'
+add T47 T0 22
+# Copy from "T46" to "T47"
+assignb T47[0] T46
+assignw T48 T1[0]
+print T48
+readi T49
+add _n__T50 BASE 8
+# Copy from "T49" to "_n__T50"
+assignw _n__T50[0] T49
+assignw T51 STACK
+add STACK STACK 12
+add T52 BASE 12
+assignw T52[0] T51
+assignw T52[4] 12
+assignb T53 'D'
+add T54 T51 0
+# Copy from "T53" to "T54"
+assignb T54[0] T53
+assignb T55 'E'
+add T56 T51 1
+# Copy from "T55" to "T56"
+assignb T56[0] T55
+assignb T57 ' '
+add T58 T51 2
+# Copy from "T57" to "T58"
+assignb T58[0] T57
+assignb T59 'E'
+add T60 T51 3
+# Copy from "T59" to "T60"
+assignb T60[0] T59
+assignb T61 'L'
+add T62 T51 4
+# Copy from "T61" to "T62"
+assignb T62[0] T61
+assignb T63 ' '
+add T64 T51 5
+# Copy from "T63" to "T64"
+assignb T64[0] T63
+assignb T65 'P'
+add T66 T51 6
+# Copy from "T65" to "T66"
+assignb T66[0] T65
+assignb T67 'A'
+add T68 T51 7
+# Copy from "T67" to "T68"
+assignb T68[0] T67
+assignb T69 'T'
+add T70 T51 8
+# Copy from "T69" to "T70"
+assignb T70[0] T69
+assignb T71 'R'
+add T72 T51 9
+# Copy from "T71" to "T72"
+assignb T72[0] T71
+assignb T73 'O'
+add T74 T51 10
+# Copy from "T73" to "T74"
+assignb T74[0] T73
+assignb T75 'N'
+add T76 T51 11
+# Copy from "T75" to "T76"
+assignb T76[0] T75
+assignw T77 T52[0]
+print T77
+add _pattern__T78 BASE 20
+assignw _pattern__T78[0] STACK
+add _n__T79 BASE 8
+assignw T80 _n__T79[0]
+assignw T81 1
+add T82 T80 T81
+assignw _pattern__T78[4] T82
+mult T82 T82 1
+add STACK STACK T82
+add _pattern__T83 BASE 20
+assignw T84 _pattern__T83[0]
+read T84
+add _pattern__T85 BASE 20
+add _n__T86 BASE 8
+assignw T87 _n__T86[0]
+assignb T88 '$'
+assignw T89 _pattern__T85[0]
+assignw T90 _pattern__T85[4]
+lt T92 T87 0
+geq T93 T87 T90
+or T94 T92 T93
+goifnot L1 T94
+# EXIT POR OUT OF BOUNDS
+exit 1
+@label L1
+mult T91 T87 1
+add T91 T91 T89
+# Copy from "T88" to "T91"
+assignb T91[0] T88
+assignw T95 STACK
+add STACK STACK 22
+add T96 BASE 28
+assignw T96[0] T95
+assignw T96[4] 22
+assignb T97 'D'
+add T98 T95 0
+# Copy from "T97" to "T98"
+assignb T98[0] T97
+assignb T99 'E'
+add T100 T95 1
+# Copy from "T99" to "T100"
+assignb T100[0] T99
+assignb T101 ' '
+add T102 T95 2
+# Copy from "T101" to "T102"
+assignb T102[0] T101
+assignb T103 'E'
+add T104 T95 3
+# Copy from "T103" to "T104"
+assignb T104[0] T103
+assignb T105 'L'
+add T106 T95 4
+# Copy from "T105" to "T106"
+assignb T106[0] T105
+assignb T107 ' '
+add T108 T95 5
+# Copy from "T107" to "T108"
+assignb T108[0] T107
+assignb T109 'T'
+add T110 T95 6
+# Copy from "T109" to "T110"
+assignb T110[0] T109
+assignb T111 'A'
+add T112 T95 7
+# Copy from "T111" to "T112"
+assignb T112[0] T111
+assignb T113 'M'
+add T114 T95 8
+# Copy from "T113" to "T114"
+assignb T114[0] T113
+assignb T115 'A'
+add T116 T95 9
+# Copy from "T115" to "T116"
+assignb T116[0] T115
+assignb T117 'N'
+add T118 T95 10
+# Copy from "T117" to "T118"
+assignb T118[0] T117
+assignb T119 'O'
+add T120 T95 11
+# Copy from "T119" to "T120"
+assignb T120[0] T119
+assignb T121 ' '
+add T122 T95 12
+# Copy from "T121" to "T122"
+assignb T122[0] T121
+assignb T123 'D'
+add T124 T95 13
+# Copy from "T123" to "T124"
+assignb T124[0] T123
+assignb T125 'E'
+add T126 T95 14
+# Copy from "T125" to "T126"
+assignb T126[0] T125
+assignb T127 'L'
+add T128 T95 15
+# Copy from "T127" to "T128"
+assignb T128[0] T127
+assignb T129 ' '
+add T130 T95 16
+# Copy from "T129" to "T130"
+assignb T130[0] T129
+assignb T131 'T'
+add T132 T95 17
+# Copy from "T131" to "T132"
+assignb T132[0] T131
+assignb T133 'E'
+add T134 T95 18
+# Copy from "T133" to "T134"
+assignb T134[0] T133
+assignb T135 'X'
+add T136 T95 19
+# Copy from "T135" to "T136"
+assignb T136[0] T135
+assignb T137 'T'
+add T138 T95 20
+# Copy from "T137" to "T138"
+assignb T138[0] T137
+assignb T139 'O'
+add T140 T95 21
+# Copy from "T139" to "T140"
+assignb T140[0] T139
+assignw T141 T96[0]
+print T141
+readi T142
+add _m__T143 BASE 36
+# Copy from "T142" to "_m__T143"
+assignw _m__T143[0] T142
+assignw T144 STACK
+add STACK STACK 11
+add T145 BASE 40
+assignw T145[0] T144
+assignw T145[4] 11
+assignb T146 'D'
+add T147 T144 0
+# Copy from "T146" to "T147"
+assignb T147[0] T146
+assignb T148 'E'
+add T149 T144 1
+# Copy from "T148" to "T149"
+assignb T149[0] T148
+assignb T150 ' '
+add T151 T144 2
+# Copy from "T150" to "T151"
+assignb T151[0] T150
+assignb T152 'E'
+add T153 T144 3
+# Copy from "T152" to "T153"
+assignb T153[0] T152
+assignb T154 'L'
+add T155 T144 4
+# Copy from "T154" to "T155"
+assignb T155[0] T154
+assignb T156 ' '
+add T157 T144 5
+# Copy from "T156" to "T157"
+assignb T157[0] T156
+assignb T158 'T'
+add T159 T144 6
+# Copy from "T158" to "T159"
+assignb T159[0] T158
+assignb T160 'E'
+add T161 T144 7
+# Copy from "T160" to "T161"
+assignb T161[0] T160
+assignb T162 'X'
+add T163 T144 8
+# Copy from "T162" to "T163"
+assignb T163[0] T162
+assignb T164 'T'
+add T165 T144 9
+# Copy from "T164" to "T165"
+assignb T165[0] T164
+assignb T166 'O'
+add T167 T144 10
+# Copy from "T166" to "T167"
+assignb T167[0] T166
+assignw T168 T145[0]
+print T168
+add _text__T169 BASE 48
+assignw _text__T169[0] STACK
+add _m__T170 BASE 36
+assignw T171 _m__T170[0]
+assignw _text__T169[4] T171
+mult T171 T171 1
+add STACK STACK T171
+add _text__T172 BASE 48
+assignw T173 _text__T172[0]
+read T173
+add _pi__T174 BASE 56
+assignw _pi__T174[0] STACK
+add _n__T175 BASE 8
+assignw T176 _n__T175[0]
+assignw T177 1
+add T178 T176 T177
+assignw _pi__T174[4] T178
+mult T178 T178 4
+add STACK STACK T178
+add _pi__T179 BASE 56
+assignw T180 0
+assignw T181 0
+assignw T182 _pi__T179[0]
+assignw T183 _pi__T179[4]
+lt T185 T180 0
+geq T186 T180 T183
+or T187 T185 T186
+goifnot L2 T187
+# EXIT POR OUT OF BOUNDS
+exit 1
+@label L2
+mult T184 T180 4
+add T184 T184 T182
+# Copy from "T181" to "T184"
+assignw T184[0] T181
+add _pi__T188 BASE 56
+add _n__T189 BASE 8
+assignw T190 _n__T189[0]
+assignw T191 0
+assignw T192 _pi__T188[0]
+assignw T193 _pi__T188[4]
+lt T195 T190 0
+geq T196 T190 T193
+or T197 T195 T196
+goifnot L3 T197
+# EXIT POR OUT OF BOUNDS
+exit 1
+@label L3
+mult T194 T190 4
+add T194 T194 T192
+# Copy from "T191" to "T194"
+assignw T194[0] T191
+assignw _for_result__T198 0
+assignw T199 1
+add _n__T200 BASE 8
+assignw T201 _n__T200[0]
+assignw T202 1
+# FOR BEGIN
+assignw BASE[64] T199
+@label _for_start__L4
+assignw _i__T204 BASE[64]
+geq T203 _i__T204 T201
+goif _for_end__L6 T203
+# FOR BODY BEGIN
+add _pi__T205 BASE 56
+add _i__T206 BASE 64
+assignw T207 _i__T206[0]
+assignw T208 1
+sub T209 T207 T208
+assignw T210 _pi__T205[0]
+assignw T211 _pi__T205[4]
+lt T213 T209 0
+geq T214 T209 T211
+or T215 T213 T214
+goifnot L7 T215
+# EXIT POR OUT OF BOUNDS
+exit 1
+@label L7
+mult T212 T209 4
+add T212 T212 T210
+assignw T216 T212[0]
+add _j__T217 BASE 68
+# Copy from "T216" to "_j__T217"
+assignw _j__T217[0] T216
+assignw T218 0
+@label _while_start__L8
+add _j__T219 BASE 68
+assignw T220 _j__T219[0]
+assignw T221 0
+gt T222 T220 T221
+add _pattern__T223 BASE 20
+add _i__T224 BASE 64
+assignw T225 _i__T224[0]
+assignw T226 _pattern__T223[0]
+assignw T227 _pattern__T223[4]
+lt T229 T225 0
+geq T230 T225 T227
+or T231 T229 T230
+goifnot L10 T231
+# EXIT POR OUT OF BOUNDS
+exit 1
+@label L10
+mult T228 T225 1
+add T228 T228 T226
+assignb T232 T228[0]
+add _pattern__T233 BASE 20
+add _j__T234 BASE 68
+assignw T235 _j__T234[0]
+assignw T236 _pattern__T233[0]
+assignw T237 _pattern__T233[4]
+lt T239 T235 0
+geq T240 T235 T237
+or T241 T239 T240
+goifnot L11 T241
+# EXIT POR OUT OF BOUNDS
+exit 1
+@label L11
+mult T238 T235 1
+add T238 T238 T236
+assignb T242 T238[0]
+neq T243 T232 T242
+and T244 T222 T243
+goifnot _while_out__L9 T244
+add _pi__T245 BASE 56
+add _j__T246 BASE 68
+assignw T247 _j__T246[0]
+assignw T248 1
+sub T249 T247 T248
+assignw T250 _pi__T245[0]
+assignw T251 _pi__T245[4]
+lt T253 T249 0
+geq T254 T249 T251
+or T255 T253 T254
+goifnot L12 T255
+# EXIT POR OUT OF BOUNDS
+exit 1
+@label L12
+mult T252 T249 4
+add T252 T252 T250
+assignw T256 T252[0]
+add _j__T257 BASE 68
+# Copy from "T256" to "_j__T257"
+assignw _j__T257[0] T256
+assignw T218 T256
+goto _while_start__L8
+@label _while_out__L9
+add _pattern__T259 BASE 20
+add _i__T260 BASE 64
+assignw T261 _i__T260[0]
+assignw T262 _pattern__T259[0]
+assignw T263 _pattern__T259[4]
+lt T265 T261 0
+geq T266 T261 T263
+or T267 T265 T266
+goifnot L15 T267
+# EXIT POR OUT OF BOUNDS
+exit 1
+@label L15
+mult T264 T261 1
+add T264 T264 T262
+assignb T268 T264[0]
+add _pattern__T269 BASE 20
+add _j__T270 BASE 68
+assignw T271 _j__T270[0]
+assignw T272 _pattern__T269[0]
+assignw T273 _pattern__T269[4]
+lt T275 T271 0
+geq T276 T271 T273
+or T277 T275 T276
+goifnot L16 T277
+# EXIT POR OUT OF BOUNDS
+exit 1
+@label L16
+mult T274 T271 1
+add T274 T274 T272
+assignb T278 T274[0]
+eq T279 T268 T278
+goifnot _if_else__L13 T279
+# INICIO IF
+add _pi__T280 BASE 56
+add _i__T281 BASE 64
+assignw T282 _i__T281[0]
+add _j__T283 BASE 68
+assignw T284 _j__T283[0]
+assignw T285 1
+add T286 T284 T285
+assignw T287 _pi__T280[0]
+assignw T288 _pi__T280[4]
+lt T290 T282 0
+geq T291 T282 T288
+or T292 T290 T291
+goifnot L17 T292
+# EXIT POR OUT OF BOUNDS
+exit 1
+@label L17
+mult T289 T282 4
+add T289 T289 T287
+# Copy from "T286" to "T289"
+assignw T289[0] T286
+assignw T258 T286
+goto _if_out__L14
+@label _if_else__L13
+# INICIO ELSE
+add _pi__T293 BASE 56
+add _i__T294 BASE 64
+assignw T295 _i__T294[0]
+assignw T296 0
+assignw T297 _pi__T293[0]
+assignw T298 _pi__T293[4]
+lt T300 T295 0
+geq T301 T295 T298
+or T302 T300 T301
+goifnot L18 T302
+# EXIT POR OUT OF BOUNDS
+exit 1
+@label L18
+mult T299 T295 4
+add T299 T299 T297
+# Copy from "T296" to "T299"
+assignw T299[0] T296
+assignw T258 T296
+@label _if_out__L14
+# FOR BODY END
+@label _for_step__L5
+add _i__T204 _i__T204 T202
+assignw BASE[64] _i__T204
+assignw _for_result__T198 T258
+# FOR END
+goto _for_start__L4
+@label _for_end__L6
+assignw T303 0
+add _last__T304 BASE 72
+# Copy from "T303" to "_last__T304"
+assignw _last__T304[0] T303
+assignw T305 0
+add _i__T306 BASE 76
+# Copy from "T305" to "_i__T306"
+assignw _i__T306[0] T305
+assignw T308 0
+add _m__T309 BASE 36
+assignw T310 _m__T309[0]
+assignw T311 1
+# FOR BEGIN
+assignw BASE[80] T308
+@label _for_start__L19
+assignw _i__T313 BASE[80]
+geq T312 _i__T313 T310
+goif _for_end__L21 T312
+# FOR BODY BEGIN
+add _last__T314 BASE 72
+assignw T315 _last__T314[0]
+add _j__T316 BASE 84
+# Copy from "T315" to "_j__T316"
+assignw _j__T316[0] T315
+assignw T317 0
+add _curr__T318 BASE 88
+# Copy from "T317" to "_curr__T318"
+assignw _curr__T318[0] T317
+assignw T319 0
+@label _while_start__L22
+add _j__T320 BASE 84
+assignw T321 _j__T320[0]
+assignw T322 0
+gt T323 T321 T322
+add _text__T324 BASE 48
+add _i__T325 BASE 80
+assignw T326 _i__T325[0]
+assignw T327 _text__T324[0]
+assignw T328 _text__T324[4]
+lt T330 T326 0
+geq T331 T326 T328
+or T332 T330 T331
+goifnot L24 T332
+# EXIT POR OUT OF BOUNDS
+exit 1
+@label L24
+mult T329 T326 1
+add T329 T329 T327
+assignb T333 T329[0]
+add _pattern__T334 BASE 20
+add _j__T335 BASE 84
+assignw T336 _j__T335[0]
+assignw T337 _pattern__T334[0]
+assignw T338 _pattern__T334[4]
+lt T340 T336 0
+geq T341 T336 T338
+or T342 T340 T341
+goifnot L25 T342
+# EXIT POR OUT OF BOUNDS
+exit 1
+@label L25
+mult T339 T336 1
+add T339 T339 T337
+assignb T343 T339[0]
+neq T344 T333 T343
+and T345 T323 T344
+goifnot _while_out__L23 T345
+add _pi__T346 BASE 56
+add _j__T347 BASE 84
+assignw T348 _j__T347[0]
+assignw T349 1
+sub T350 T348 T349
+assignw T351 _pi__T346[0]
+assignw T352 _pi__T346[4]
+lt T354 T350 0
+geq T355 T350 T352
+or T356 T354 T355
+goifnot L26 T356
+# EXIT POR OUT OF BOUNDS
+exit 1
+@label L26
+mult T353 T350 4
+add T353 T353 T351
+assignw T357 T353[0]
+add _j__T358 BASE 84
+# Copy from "T357" to "_j__T358"
+assignw _j__T358[0] T357
+assignw T319 T357
+goto _while_start__L22
+@label _while_out__L23
+add _text__T360 BASE 48
+add _i__T361 BASE 80
+assignw T362 _i__T361[0]
+assignw T363 _text__T360[0]
+assignw T364 _text__T360[4]
+lt T366 T362 0
+geq T367 T362 T364
+or T368 T366 T367
+goifnot L29 T368
+# EXIT POR OUT OF BOUNDS
+exit 1
+@label L29
+mult T365 T362 1
+add T365 T365 T363
+assignb T369 T365[0]
+add _pattern__T370 BASE 20
+add _j__T371 BASE 84
+assignw T372 _j__T371[0]
+assignw T373 _pattern__T370[0]
+assignw T374 _pattern__T370[4]
+lt T376 T372 0
+geq T377 T372 T374
+or T378 T376 T377
+goifnot L30 T378
+# EXIT POR OUT OF BOUNDS
+exit 1
+@label L30
+mult T375 T372 1
+add T375 T375 T373
+assignb T379 T375[0]
+eq T380 T369 T379
+goifnot _if_else__L27 T380
+# INICIO IF
+add _j__T381 BASE 84
+assignw T382 _j__T381[0]
+assignw T383 1
+add T384 T382 T383
+add _curr__T385 BASE 88
+# Copy from "T384" to "_curr__T385"
+assignw _curr__T385[0] T384
+assignw T359 T384
+goto _if_out__L28
+@label _if_else__L27
+# INICIO ELSE
+assignw T386 0
+add _curr__T387 BASE 88
+# Copy from "T386" to "_curr__T387"
+assignw _curr__T387[0] T386
+assignw T359 T386
+@label _if_out__L28
+add _curr__T388 BASE 88
+assignw T389 _curr__T388[0]
+add _last__T390 BASE 72
+# Copy from "T389" to "_last__T390"
+assignw _last__T390[0] T389
+add _i__T391 BASE 80
+assignw T392 _i__T391[0]
+assignw T393 1
+add T394 T392 T393
+add _i__T395 BASE 80
+# Copy from "T394" to "_i__T395"
+assignw _i__T395[0] T394
+add _curr__T397 BASE 88
+assignw T398 _curr__T397[0]
+add _n__T399 BASE 8
+assignw T400 _n__T399[0]
+eq T401 T398 T400
+goifnot _if_else__L31 T401
+# INICIO IF
+assignw T402 STACK
+add STACK STACK 25
+add T403 BASE 92
+assignw T403[0] T402
+assignw T403[4] 25
+assignb T404 'H'
+add T405 T402 0
+# Copy from "T404" to "T405"
+assignb T405[0] T404
+assignb T406 'A'
+add T407 T402 1
+# Copy from "T406" to "T407"
+assignb T407[0] T406
+assignb T408 'Y'
+add T409 T402 2
+# Copy from "T408" to "T409"
+assignb T409[0] T408
+assignb T410 ' '
+add T411 T402 3
+# Copy from "T410" to "T411"
+assignb T411[0] T410
+assignb T412 'M'
+add T413 T402 4
+# Copy from "T412" to "T413"
+assignb T413[0] T412
+assignb T414 'A'
+add T415 T402 5
+# Copy from "T414" to "T415"
+assignb T415[0] T414
+assignb T416 'T'
+add T417 T402 6
+# Copy from "T416" to "T417"
+assignb T417[0] T416
+assignb T418 'C'
+add T419 T402 7
+# Copy from "T418" to "T419"
+assignb T419[0] T418
+assignb T420 'H'
+add T421 T402 8
+# Copy from "T420" to "T421"
+assignb T421[0] T420
+assignb T422 ' '
+add T423 T402 9
+# Copy from "T422" to "T423"
+assignb T423[0] T422
+assignb T424 'E'
+add T425 T402 10
+# Copy from "T424" to "T425"
+assignb T425[0] T424
+assignb T426 'N'
+add T427 T402 11
+# Copy from "T426" to "T427"
+assignb T427[0] T426
+assignb T428 ' '
+add T429 T402 12
+# Copy from "T428" to "T429"
+assignb T429[0] T428
+assignb T430 'L'
+add T431 T402 13
+# Copy from "T430" to "T431"
+assignb T431[0] T430
+assignb T432 'A'
+add T433 T402 14
+# Copy from "T432" to "T433"
+assignb T433[0] T432
+assignb T434 ' '
+add T435 T402 15
+# Copy from "T434" to "T435"
+assignb T435[0] T434
+assignb T436 'P'
+add T437 T402 16
+# Copy from "T436" to "T437"
+assignb T437[0] T436
+assignb T438 'O'
+add T439 T402 17
+# Copy from "T438" to "T439"
+assignb T439[0] T438
+assignb T440 'S'
+add T441 T402 18
+# Copy from "T440" to "T441"
+assignb T441[0] T440
+assignb T442 'I'
+add T443 T402 19
+# Copy from "T442" to "T443"
+assignb T443[0] T442
+assignb T444 'C'
+add T445 T402 20
+# Copy from "T444" to "T445"
+assignb T445[0] T444
+assignb T446 'I'
+add T447 T402 21
+# Copy from "T446" to "T447"
+assignb T447[0] T446
+assignb T448 'O'
+add T449 T402 22
+# Copy from "T448" to "T449"
+assignb T449[0] T448
+assignb T450 'N'
+add T451 T402 23
+# Copy from "T450" to "T451"
+assignb T451[0] T450
+assignb T452 ':'
+add T453 T402 24
+# Copy from "T452" to "T453"
+assignb T453[0] T452
+assignw T454 T403[0]
+print T454
+# INICIO PRINT
+add _i__T455 BASE 80
+assignw T456 _i__T455[0]
+add _n__T457 BASE 8
+assignw T458 _n__T457[0]
+sub T459 T456 T458
+printi T459
+# FINAL PRINT
+goto _if_out__L32
+@label _if_else__L31
+# INICIO ELSE
+@label _if_out__L32
+# FOR BODY END
+@label _for_step__L20
+add _i__T313 _i__T313 T311
+assignw BASE[80] _i__T313
+# FOR END
+goto _for_start__L19
+@label _for_end__L21
+@label _kmp_end__L0
+@endfunction 100
+@function main__0 0
+# Code to calculate parameters
+# Push parameters
+call _freturn__T460 kmp__0
+@label _main_end__L33
+@endfunction 0
+@label endProgram
