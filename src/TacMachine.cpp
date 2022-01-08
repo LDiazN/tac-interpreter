@@ -349,7 +349,7 @@ std::string VirtualStack::str(bool show_memory, uint stack_mem_bytes) const
     ss << "\t- Stack pop count: "       << std::dec << m_pop_count      << std::endl;
     ss << "\t- Read Operations: "       << std::dec << m_read_count     << std::endl;
     ss << "\t- Write Operations: "      << std::dec << m_write_count    << std::endl;
-    
+
     if (show_memory || stack_mem_bytes != 0)
     {
         ss << "\t- Memory: " << std::endl;
@@ -815,6 +815,7 @@ TacMachine::TacMachine(Program program)
     , m_program_counter(0)
     , m_memory()
     , m_status(Status::NOT_STARTED)
+    , m_exit_status_code(0)
 {
     m_frame_pointer = stack_pointer();
 
@@ -1210,9 +1211,9 @@ std::string TacMachine::str(bool show_memory, bool show_labels, bool show_regist
     ss << "- Current Instruction: " << 
         ( m_program_counter < m_program.size() ? m_program[m_program_counter].str() : "<Program Finished>")
         << std::endl;
-    ss << "- Program Status: " << show_status(m_status) << std::endl;
+    ss << "- Machine Status: " << show_status(m_status) << std::endl;
     ss << "- Currently active callstack: " << m_callstack.size() << std::endl;
-
+    ss << "- Status Code: " << m_exit_status_code << std::endl;
     if (show_registers)
     {
         for (auto const& call_data : m_callstack)

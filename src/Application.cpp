@@ -175,7 +175,7 @@ namespace TacRunner
         bool labels = std::find(args.begin(), args.end(), App::labels()) != args.end();
 
         // Check if stack memory flag is provided
-        uint stack_mem_bytes;
+        uint stack_mem_bytes = 0;
         for(size_t i = 0; i < args.size(); i++)
         {
             auto const& arg = args[i];
