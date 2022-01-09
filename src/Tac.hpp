@@ -55,6 +55,8 @@ namespace TacRunner {
         READF,
         READ,
         READC,
+        ITOF,
+        FTOI,
         METAFUNBEGIN,
         METAFUNEND,
         __LAST__ // so we can iterate over the enum class

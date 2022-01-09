@@ -105,6 +105,8 @@
 %token <TacRunner::Instr> READF  "readf";
 %token <TacRunner::Instr> READ   "read";
 %token <TacRunner::Instr> READC  "readc";
+%token <TacRunner::Instr> FTOI   "ftoi";
+%token <TacRunner::Instr> ITOF   "itof";
 %token <TacRunner::Instr> METAFUNBEGIN   "@fun_begin";
 %token <TacRunner::Instr> METAFUNEND     "@fun_end";
 
@@ -336,6 +338,16 @@ T       : METALABEL ID
         | READC  Variable
                 {
                     $$ = TacRunner::Tac($1, TacRunner::Value($2));
+                }
+
+        | FTOI Variable Value
+                {
+                    $$ = TacRunner::Tac($1, TacRunner::Value($2), $3);
+                }
+        
+        | ITOF Variable Value
+                {
+                    $$ = TacRunner::Tac($1, TacRunner::Value($2), $3);
                 }
 
 F       :   METAFUNBEGIN ID INTEGER NEWLINE 

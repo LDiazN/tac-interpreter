@@ -176,7 +176,14 @@ single_line_comment #[^\n\r]+?(?:\*\)|[\n\r])
 "readc"     {
                 return TacRunner::Parser::make_READC(TacRunner::Instr::READC);
             }
-            
+
+"itof"      {
+                return TacRunner::Parser::make_ITOF(TacRunner::Instr::ITOF);
+            }
+
+"ftoi"      {
+                return TacRunner::Parser::make_FTOI(TacRunner::Instr::FTOI);
+            }
 
 "@function" {
                 return TacRunner::Parser::make_METAFUNBEGIN(TacRunner::Instr::METAFUNBEGIN);

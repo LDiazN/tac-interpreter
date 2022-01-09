@@ -1288,6 +1288,7 @@ namespace TacRunner
         uint run_call(const Tac& tac);
         uint run_print(const Tac& tac, char type); // type is: i for int, c for char, f for float, s for string
         uint run_read(const Tac& tac, char type); // type is: i for int, c for char, f for float, s for string
+        uint run_convert(const Tac& tac, char t); // t=='f' for itof, t=='i' for ftoi
         uint run_funbegin(const Tac&tac);
         uint run_funend(const Tac&tac);
     };

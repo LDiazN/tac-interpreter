@@ -1059,6 +1059,10 @@ uint TacMachine::run_tac_instruction(const Tac &tac)
         return run_read(tac, 's');
     case Instr::READC:
         return run_read(tac, 'c');
+    case Instr::FTOI:
+        return run_convert(tac, 'i');
+    case Instr::ITOF:
+        return run_convert(tac, 'f');
     case Instr::METAFUNBEGIN:
         return run_funbegin(tac);
     case Instr::METAFUNEND:
@@ -2409,6 +2413,58 @@ uint TacMachine::run_read(const Tac& tac, char type)
 
         return FAIL;
     }
+
+    return SUCCESS;
+}
+
+uint TacMachine::run_convert(const Tac& tac, char t)
+{
+    // sanity check
+    assert(tac.instr() == Instr::ITOF || tac.instr() == Instr::FTOI);
+    const auto &args = tac.args();
+    assert(args.size() == 2 && "Invalid number of arguments in float conversion instruction");
+    auto const& var_arg = args[0];
+    auto const& value_arg = args[1];
+
+    // Parse variable where to store value
+    assert(var_arg.is<Variable>());
+    auto const& var = var_arg.get<Variable>();
+
+    assert(!var.is_access);
+
+    // Get actual value to assign
+    REGISTER_TYPE value;
+    if(actual_value(value_arg,value)  == FAIL)
+    {
+        App::error("Could not get actual value to convert");
+        return FAIL;
+    }
+
+    // Check what conversion to perform
+    union {
+        float f;
+        int i;
+        REGISTER_TYPE reg;
+    } converter;
+
+    converter.reg = value;
+    if (t == 'f')
+    {
+        int i = converter.i;
+        converter.f = (float) i;
+    }
+    else if (t == 'i')
+    {
+        float f = converter.f;
+        converter.i = (int) f;
+    }
+    else 
+    {
+        assert(false && "Invalid type of conversion");
+    }
+
+    // Perform assign
+    set_register(var.name, converter.reg);
 
     return SUCCESS;
 }
