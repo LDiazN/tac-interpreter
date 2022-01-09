@@ -235,7 +235,6 @@ single_line_comment #[^\n\r]+?(?:\*\)|[\n\r])
 \'\\t\'     { return TacRunner::Parser::make_CHAR('\t'); }
 
 \'{ascii_char}\' { 
-                    cout << "my char is: " << yytext << endl;
                     return TacRunner::Parser::make_CHAR(
                         replace(yytext, "'", "")[0]
                     ); 
