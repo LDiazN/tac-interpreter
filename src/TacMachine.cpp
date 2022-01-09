@@ -2052,11 +2052,17 @@ uint TacMachine::run_malloc(const Tac &tac)
 
     // check that both types of memory are variables
     assert(lvalue_arg.is<Variable>() && "First argument of malloc should be a variable where to store its value");
-    assert(byte_count_arg.is<int>() && "Second argument of malloc should be int");
 
-    auto byte_count = byte_count_arg.get<int>();
     auto const& lvalue = lvalue_arg.get<Variable>();
-    
+
+    // Parse bytecount
+    REGISTER_TYPE byte_count = 0;
+    if(actual_value(byte_count_arg, byte_count) == FAIL)
+    {
+        App::error("Could not retrieve amount of bytes to allocate for malloc");
+        return FAIL;
+    }
+
     // lvalue should not be a memory access
     assert(!lvalue.is_access);
 
