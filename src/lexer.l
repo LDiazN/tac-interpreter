@@ -36,7 +36,7 @@ integer         (([1-9][0-9]*)|0)
 float           (({frac}{exp_opt})|({dseq}{exp}))
 
 id              ([a-zA-Z_@]+[a-zA-Z_@0-9]*) 
-ascii_char      ([\x00-\x7F])
+ascii_char      ([\x00-\x7F]|[\\\\n]|[\\\\t])
 string          (\"(\\.|[^"\\])*\")
 
 single_line_comment #[^\n\r]+?(?:\*\)|[\n\r])
@@ -230,7 +230,17 @@ single_line_comment #[^\n\r]+?(?:\*\)|[\n\r])
                 return TacRunner::Parser::make_FLOAT(number);
             }
 
-\'{ascii_char}\' { return TacRunner::Parser::make_CHAR(yytext[1]); }
+\'\\n\'     { return TacRunner::Parser::make_CHAR('\n'); }
+
+\'\\t\'     { return TacRunner::Parser::make_CHAR('\t'); }
+
+\'{ascii_char}\' { 
+                    cout << "my char is: " << yytext << endl;
+                    return TacRunner::Parser::make_CHAR(
+                        replace(yytext, "'", "")[0]
+                    ); 
+                
+                }
 
 \(          {
                 return TacRunner::Parser::make_LEFTPAR();
