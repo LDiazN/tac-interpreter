@@ -4,12 +4,18 @@
 	#include "Lexer.hpp"
 	#include "TacReader.hpp"
 	#include "_Parser.hpp"
-
+    #include <string>
+    #include <regex>
 	using namespace std;
 
 	// Original yyterminate() macro returns int. Since we're using Bison 3 variants
 	// as tokens, we must redefine it to change type from `int` to `Parser::semantic_type`
 	#define yyterminate() TacRunner::Parser::make_END();
+
+    string replace(string where, string what, string replacement)
+    {
+        return regex_replace(where, regex(what), replacement);
+    }
 %}
 
 %option nodefault
@@ -202,7 +208,8 @@ single_line_comment #[^\n\r]+?(?:\*\)|[\n\r])
             }
 
 {string}    {
-                return TacRunner::Parser::make_STRING(yytext); 
+
+                return TacRunner::Parser::make_STRING(replace(replace(yytext, "\\\\n", "\n"), "\"", "")); 
             }
 
 "False"     {
