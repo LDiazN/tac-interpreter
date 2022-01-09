@@ -2081,12 +2081,18 @@ uint TacMachine::run_memcpy(const Tac& tac)
     // sanity check
     assert(dest_var_arg.is<Variable>());
     assert(src_var_arg.is<Variable>());
-    assert(n_bytes_arg.is<int>());
 
     // get actual values
     const auto& dest_var = dest_var_arg.get<Variable>();
     const auto& src_var  = src_var_arg.get<Variable>();
-    const auto& n_bytes  = n_bytes_arg.get<int>();
+
+    // Get value of bytes
+    uint n_bytes = 0;
+    if(actual_value(n_bytes_arg, n_bytes) == FAIL)
+    {
+        App::error("Couldn't access to size value of memcopy instruction");
+        return FAIL;
+    }
 
     // Try to write n bytes from src to dest
     REGISTER_TYPE dest;

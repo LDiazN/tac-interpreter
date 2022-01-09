@@ -279,7 +279,7 @@ T       : METALABEL ID
                 {
                     $$ = TacRunner::Tac($1, TacRunner::Value($2), $3);
                 }
-        | MEMCPY Variable Variable INTEGER
+        | MEMCPY Variable Variable Value
                 {
                     $$ = TacRunner::Tac($1, TacRunner::Value($2), TacRunner::Value($3), TacRunner::Value($4));
                 }
