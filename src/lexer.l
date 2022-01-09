@@ -234,7 +234,7 @@ single_line_comment #[^\n\r]+?(?:\*\)|[\n\r])
                 //cout << "Scanner: whitechar (ignored)" << endl;
             }
 
-[\n]        {
+[\n]+       {
                 return TacRunner::Parser::make_NEWLINE();
             }
 
