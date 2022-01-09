@@ -274,7 +274,7 @@ namespace TacRunner
 
     void App::program_log(std::string msg)
     {
-        cout << "program: " << msg << std::endl;;
+        cout << msg;
     }
     
 }
