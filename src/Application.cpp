@@ -70,10 +70,12 @@ namespace TacRunner
         // Try to run program 
         App::trace("Creating tac machine...");
         TacMachine machine(tac_code);
-
-        // Start rogram
-        App::trace("Starting program...");
-        machine.run_tac_program();
+        if (machine.status() == TacMachine::Status::NOT_STARTED)
+        {
+            // Start rogram when correctly created
+            App::trace("Starting program...");
+            machine.run_tac_program();
+        }
         // vv TESTING AREA, DELETE LATER --------------------------------------------------------------------------------
 
 

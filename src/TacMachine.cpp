@@ -827,11 +827,19 @@ TacMachine::TacMachine(Program program)
     reset_instruction_count();
 
     // Create instruction map
-    set_up_label_map();
+    if (set_up_label_map() == FAIL)
+    {
+        App::error("Error trying to parse labels into line numbers");
+        m_status = Status::ERROR;
+    }
 }
 
 void TacMachine::run_tac_program()
 {
+    // Expects to be ready to init 
+    if (m_status != Status::NOT_STARTED)
+        return;
+
     m_status = Status::RUNNING;
     m_program_counter = 0;
     while(m_status == Status::RUNNING)
