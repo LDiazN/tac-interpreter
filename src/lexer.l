@@ -234,6 +234,8 @@ single_line_comment #[^\n\r]+?(?:\*\)|[\n\r])
 
 \'\\t\'     { return TacRunner::Parser::make_CHAR('\t'); }
 
+\'\\0\'     { return TacRunner::Parser::make_CHAR('\0'); }
+
 \'{ascii_char}\' { 
                     return TacRunner::Parser::make_CHAR(
                         replace(yytext, "'", "")[0]
