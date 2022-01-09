@@ -331,7 +331,7 @@ uint VirtualStack::read(uint virtual_position, std::byte *bytes, size_t count)
         stringstream ss;
         ss << "Reading memory segment possibly out of the current active stack memory. ";
         ss << "Starting from 0x" << std::hex << virtual_position << " to 0x" << std::hex << last_pos;
-        App::warning(ss.str());
+        // App::warning(ss.str());
     }
 
     // Read memory 

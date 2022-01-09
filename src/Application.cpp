@@ -236,7 +236,7 @@ namespace TacRunner
 
     void App::log_msg(std::string msg)
     {
-        cout << App::name() << ": " << msg << std::endl;
+        cerr << App::name() << ": " << msg << std::endl;
     }
 
     void App::log_err(std::string msg)
