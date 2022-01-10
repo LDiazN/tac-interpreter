@@ -114,6 +114,11 @@ namespace TacRunner
         ss << "\t\t<name_of_file> : is the name of the file to be run, should be a valid tac code." << endl;
         ss << "\t\t [flags] : Configuration flags, part of the following: " << endl;
         ss << "\t\t\t--help : Show this help" << endl;
+        ss << "\t\t\t--memory : Show current memory state" << endl;
+        ss << "\t\t\t--registers : Show registers" << endl;
+        ss << "\t\t\t--labels : show current labels" << endl;
+        ss << "\t\t\t--stack-mem-bytes n: show n bytes of stack memory" << endl;
+
 
         return ss.str();
     }
