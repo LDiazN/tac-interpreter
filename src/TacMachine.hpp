@@ -1253,9 +1253,9 @@ namespace TacRunner
                 { out_result = float_to_reg(reg_to_float(l_val) * reg_to_float(r_val)); return SUCCESS; }
             static uint divf(uint l_val, uint r_val, uint& out_result);
             static uint eq(uint l_val, uint r_val, uint& out_result)
-                { out_result = l_val == r_val; return SUCCESS; }
+                { out_result = bool_to_reg(l_val == r_val); return SUCCESS; }
             static uint neq(uint l_val, uint r_val, uint& out_result)
-                { out_result = l_val != r_val; return SUCCESS; }
+                { out_result = bool_to_reg(l_val != r_val); return SUCCESS; }
             static uint and_op(uint l_val, uint r_val, uint& out_result)
                 { out_result = bool_to_reg(reg_to_bool(l_val) && reg_to_bool(r_val)); return SUCCESS; }
             static uint or_op(uint l_val, uint r_val, uint& out_result)
@@ -1273,9 +1273,9 @@ namespace TacRunner
             static uint geq(uint l_val, uint r_val, uint& out_result)
                 { out_result = int_to_reg(reg_to_int(l_val) >= reg_to_int(r_val)); return SUCCESS; }
             static uint gtf(uint l_val, uint r_val, uint& out_result)
-                { out_result = reg_to_float(l_val) > reg_to_float(r_val); return SUCCESS; }
+                { out_result = bool_to_reg(reg_to_float(l_val) > reg_to_float(r_val)); return SUCCESS; }
             static uint geqf(uint l_val, uint r_val, uint& out_result)
-                { out_result = reg_to_float(l_val) >= reg_to_float(r_val); return SUCCESS; }
+                { out_result = bool_to_reg(reg_to_float(l_val) >= reg_to_float(r_val)); return SUCCESS; }
         uint run_unary_op(const Tac& tac);
         uint run_goto(const Tac& tac);
         uint run_goif(const Tac& tac, bool is_negated = false);

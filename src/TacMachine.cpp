@@ -662,11 +662,14 @@ uint MemoryManager::read(std::byte *bytes, size_t count, uint virtual_address)
         stringstream ss;
         ss << "[segmentation fault] Trying to read up to an invalid memory address: 0x" << std::hex << last_pos_virtual;
         ss << " starting from 0x" << std::hex << virtual_address;
-        App::error(ss.str());
+    App::error(ss.str());
         return FAIL;
     }
     else if(last_addr_type != type) // if valid but in another memory type
     {
+        auto const stck = stack_start();
+        auto const hp = heap_start();
+
         stringstream ss;
         ss << "[segmentation fault] Trying to read up to a memory address that is valid, but in another type of memory: " << std::hex << last_pos_virtual;
         ss << " starting from 0x" << std::hex << virtual_address << ". Initial position is of type " << memory_type_to_str(type);
@@ -980,7 +983,7 @@ uint TacMachine::pop_program_state()
 
 uint TacMachine::run_tac_instruction(const Tac &tac)
 {
-
+    // cout << str(true) << endl;
     switch (tac.instr())
     {
     case Instr::METASTATICV:
@@ -1074,6 +1077,7 @@ uint TacMachine::run_tac_instruction(const Tac &tac)
         return SUCCESS;
         break;
     }
+
 
     return FAIL;
 }
@@ -1533,7 +1537,6 @@ uint TacMachine::load(const Variable& var, const Variable& val, char type)
         return FAIL;
     }
 
-
     // Set register to specified value
     set_register(var.name, actual_rvalue);
     return SUCCESS;
@@ -1974,7 +1977,7 @@ uint TacMachine::run_unary_op(const Tac& tac)
 
     // Perform operation 
     if (tac.instr() == Instr::NEG)
-        reg = ~reg;
+        reg = !reg;
     else if (tac.instr() == Instr::MINUS)
     {
         assert(var.name.size() > 0);
