@@ -1,0 +1,6 @@
+assignw f 12.5
+ftoi i f
+printi i
+itof f i 
+printf f
+printi f

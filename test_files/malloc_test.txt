@@ -1,0 +1,3 @@
+malloc x 10
+assignw y 20
+malloc z y
