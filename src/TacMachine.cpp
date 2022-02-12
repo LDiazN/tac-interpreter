@@ -667,9 +667,6 @@ uint MemoryManager::read(std::byte *bytes, size_t count, uint virtual_address)
     }
     else if(last_addr_type != type) // if valid but in another memory type
     {
-        auto const stck = stack_start();
-        auto const hp = heap_start();
-
         stringstream ss;
         ss << "[segmentation fault] Trying to read up to a memory address that is valid, but in another type of memory: " << std::hex << last_pos_virtual;
         ss << " starting from 0x" << std::hex << virtual_address << ". Initial position is of type " << memory_type_to_str(type);
