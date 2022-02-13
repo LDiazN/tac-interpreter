@@ -35,4 +35,21 @@ Tac Runner is a simple virtual machine capable of running tac code.
 As the `--help` message suggests, the tac-runner tool is like a tiny little virtual machine tailored for the
 TAC intermediate code. You can check the memory, registers, currently running line, and more!
 
+# Samples
+You can find a few code samples in the `test_files` folders. For example, you can run the recursive version of 
+fibonacci using:
 
+```bash
+./tac-runner test_files/fib_rec.tac
+```
+> Beware of big numbers, the word size is 4 (32 bits registers) so it might overflow quickly
+
+This program will prompt you to input 1 if you want to test the fibonacci or 0 if you want to quit (Yes, it has input!). Then, if you choose 1, it will ask you for an
+input number and it will print its fibonacci number. For example
+```
+DE 0 PARA TERMINAR O 1 PARA FIB REC
+1
+INTRODUZCA UN NUMERO MAYOR O IGUAL QUE 0
+10
+55
+```
