@@ -1899,24 +1899,14 @@ REGISTER_TYPE TacMachine::int_to_reg(int val)
 
 bool TacMachine::reg_to_bool(REGISTER_TYPE val)
 {
-    union {
-        bool b;
-        REGISTER_TYPE reg;
-    } converter;
-
-    converter.reg = val;
-    return converter.b;
+    REGISTER_TYPE result = val;
+    return val;
 }
 
 REGISTER_TYPE TacMachine::bool_to_reg(bool val)
 {
-    union {
-        bool b;
-        REGISTER_TYPE reg;
-    } converter;
-
-    converter.b = val;
-    return converter.reg;
+    REGISTER_TYPE result = val;
+    return result;
 }
 
 uint TacMachine::div(uint l_val, uint r_val, uint& out_result)
