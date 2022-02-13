@@ -45,7 +45,7 @@ fibonacci using:
 > Beware of big numbers, the word size is 4 (32 bits registers) so it might overflow quickly
 
 This program will prompt you to input 1 if you want to test the fibonacci or 0 if you want to quit (Yes, it has input!). Then, if you choose 1, it will ask you for an
-input number and it will print its fibonacci number. For example
+input number and it will print its fibonacci number. For example:
 ```
 DE 0 PARA TERMINAR O 1 PARA FIB REC
 1
