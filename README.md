@@ -16,7 +16,7 @@ And that's it! You know have the tac-runner ready to go.
 
 # Usage
 After building, you'll have a new executable file `tac-runner`, you can use it as any other
-comman line tool to run programs. 
+command line tool to run programs. 
 ```
 $ ./tac-runner --help
 Tac Runner is a simple virtual machine capable of running tac code.
